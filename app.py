@@ -397,7 +397,7 @@ def build_exiftool_write_args(meta: Dict[str, Any]) -> List[str]:
 	args.append(f"-XMP-dc:Description={desc_json}")
 	return args
 
-def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
+def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: bool = False) -> subprocess.CompletedProcess:
     """Aplica todos os metadados da trend usando exiftool"""
     # Primeiro, copia o arquivo para preservar a estrutura original
     import shutil
@@ -431,6 +431,19 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any]) -> subprocess
         f"-GPSLatitudeRef={meta.get('gps_latitude_ref', 'South')}",
         f"-GPSLongitudeRef={meta.get('gps_longitude_ref', 'West')}"
     ])
+    
+    # Metadados específicos para vídeo
+    if is_video:
+        args.extend([
+            "-VideoFrameRate=30",
+            "-VideoCodec=H.264",
+            f"-CreationDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
+            f"-CreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
+            f"-MediaCreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
+            f"-TrackCreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
+            "-XMP-dc:Creator=Meta View",
+            "-XMP-dc:Title=Ray-Ban Meta Smart Glasses"
+        ])
     
     # Aplica no arquivo de destino
     args.append(str(dst))
@@ -674,29 +687,44 @@ def upload():
             flash('Arquivo muito grande. Máximo 16MB.')
             return redirect(url_for('index'))
 
-        # Security: Verify file is an image
-        allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'heic', 'heif'}
+        # Security: Verify file is an allowed media type (image or video)
+        allowed_extensions = {
+            # Images
+            'jpg', 'jpeg', 'png', 'gif', 'heic', 'heif', 
+            # Videos
+            'mp4', 'mov', 'avi', '3gp', 'mkv'
+        }
         file_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
         
         if file_ext not in allowed_extensions:
-            flash('Tipo de arquivo não permitido. Use JPG, PNG, GIF ou HEIC.')
+            flash('Tipo de arquivo não permitido. Use JPG, PNG, HEIC, MP4 ou MOV.')
             return redirect(url_for('index'))
             
         # Check file content type (basic MIME check)
         file_content = file.read(1024)  # Read first 1KB
         file.seek(0)  # Reset pointer
         
-        # Basic signature check for common image formats
-        is_image = (
+        # Basic signature check for common media formats
+        is_valid_media = (
+            # Images
             file_content.startswith(b'\xff\xd8\xff') or  # JPEG
             b'PNG' in file_content[:20] or  # PNG
             b'GIF' in file_content[:20] or  # GIF
-            b'ftypheic' in file_content[:20]  # HEIC
+            b'ftypheic' in file_content[:20] or  # HEIC
+            # Videos
+            b'ftyp' in file_content[:20] or  # MP4/MOV
+            file_content.startswith(b'\x00\x00\x00\x14ftyp') or  # MP4
+            file_content.startswith(b'\x00\x00\x00\x18ftyp') or  # MOV
+            file_content.startswith(b'RIFF') or  # AVI
+            file_content.startswith(b'\x1A\x45\xDF\xA3')  # MKV
         )
         
-        if not is_image:
-            flash('O arquivo não parece ser uma imagem válida.')
+        if not is_valid_media:
+            flash('O arquivo não parece ser uma mídia válida.')
             return redirect(url_for('index'))
+            
+        # Determine media type
+        is_video = file_ext in {'mp4', 'mov', 'avi', '3gp', 'mkv'}
 
         # Sanitize filename for safe filesystem writes
         filename = secure_filename(file.filename)
@@ -723,19 +751,20 @@ def upload():
         
         # Apply metadata with improved function (includes copying the file)
         try:
-            print(f"Applying trend metadata to {upload_path}")
-            write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
+            media_type = "vídeo" if is_video else "imagem"
+            print(f"Applying trend metadata to {upload_path} (type: {media_type})")
+            write_proc = run_exiftool_write(upload_path, processed_path, TREND_META, is_video=is_video)
             
             if write_proc.returncode != 0:
                 print(f"ExifTool warning: {write_proc.stderr}")
-                flash('Metadados aplicados parcialmente')
+                flash(f'Metadados aplicados parcialmente ao {media_type}')
             else:
-                print("Metadata applied successfully")
+                print(f"Metadata applied successfully to {media_type}")
         except Exception as e:
             print(f"ExifTool error: {e}")
             import traceback
             traceback.print_exc()
-            flash('Erro ao aplicar metadados, mas o arquivo foi processado')
+            flash(f'Erro ao aplicar metadados ao {media_type}, mas o arquivo foi processado')
         
         # Verify the processed file exists
         if not processed_path.exists():
