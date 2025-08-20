@@ -23,8 +23,8 @@ for d in [UPLOAD_DIR, PROCESSED_DIR, TEMPLATES_DIR]:
 
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret')
-# Allow up to 32 MB per upload (adjust if needed)
-app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_UPLOAD_MB', '32')) * 1024 * 1024
+# Allow up to 16 MB per upload (reduced for mobile stability)
+app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_UPLOAD_MB', '16')) * 1024 * 1024
 
 # Auth config (env vars preferred)
 APP_USER = os.environ.get('APP_USER', 'admin')
@@ -280,29 +280,60 @@ def index():
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload():
-	if 'image' not in request.files:
-		flash('Selecione uma imagem')
-		return redirect(url_for('index'))
-	file = request.files['image']
-	if not file or file.filename == '':
-		flash('Arquivo inválido')
-		return redirect(url_for('index'))
+    try:
+        if 'image' not in request.files:
+            flash('Selecione uma imagem')
+            return redirect(url_for('index'))
+        
+        file = request.files['image']
+        if not file or file.filename == '':
+            flash('Arquivo inválido')
+            return redirect(url_for('index'))
 
-	# Sanitize filename for safe filesystem writes
-	filename = secure_filename(file.filename)
-	upload_path = UPLOAD_DIR / filename
-	file.save(str(upload_path))
+        # Check file size
+        file.seek(0, 2)  # Go to end
+        file_size = file.tell()
+        file.seek(0)  # Go back to start
+        
+        if file_size > 16 * 1024 * 1024:  # 16MB limit
+            flash('Arquivo muito grande. Máximo 16MB.')
+            return redirect(url_for('index'))
 
-	processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
-	processed_path = PROCESSED_DIR / processed_name
+        # Sanitize filename for safe filesystem writes
+        filename = secure_filename(file.filename)
+        if not filename:
+            flash('Nome de arquivo inválido')
+            return redirect(url_for('index'))
+            
+        upload_path = UPLOAD_DIR / filename
+        file.save(str(upload_path))
+        
+        # Verify file was saved
+        if not upload_path.exists():
+            flash('Erro ao salvar arquivo')
+            return redirect(url_for('index'))
 
-	# Apply trend metadata directly
-	write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
-	if write_proc.returncode != 0 or not processed_path.exists():
-		flash('Houve um imprevisto. Tente outra imagem.')
-		return redirect(url_for('index'))
+        processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
+        processed_path = PROCESSED_DIR / processed_name
 
-	return render_template('result.html', processed_filename=processed_name)
+        # Apply trend metadata directly
+        write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
+        
+        if write_proc.returncode != 0:
+            print(f"ExifTool error: {write_proc.stderr}")
+            flash('Erro ao processar imagem. Tente novamente.')
+            return redirect(url_for('index'))
+            
+        if not processed_path.exists():
+            flash('Arquivo processado não foi criado')
+            return redirect(url_for('index'))
+
+        return render_template('result.html', processed_filename=processed_name)
+        
+    except Exception as e:
+        print(f"Upload error: {str(e)}")
+        flash('Erro interno. Tente novamente.')
+        return redirect(url_for('index'))
 
 
 @app.route('/download/<path:filename>')
@@ -310,6 +341,19 @@ def upload():
 
 def download(filename: str):
 	return send_from_directory(str(PROCESSED_DIR), filename, as_attachment=True)
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    print(f"500 error: {error}")
+    flash('Erro interno do servidor. Tente novamente.')
+    return redirect(url_for('index'))
+
+
+@app.errorhandler(413)
+def too_large(error):
+    flash('Arquivo muito grande. Máximo 32MB.')
+    return redirect(url_for('index'))
 
 
 if __name__ == '__main__':
