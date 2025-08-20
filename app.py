@@ -61,29 +61,72 @@ if MYSQL_AVAILABLE:
             return True
             
         try:
+            print(f"Connecting to MySQL: {DB_CONFIG['host']}:{DB_CONFIG['database']}")
             conn = pymysql.connect(**DB_CONFIG)
             cursor = conn.cursor()
             
-            # Create users table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    username VARCHAR(50) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    is_admin BOOLEAN DEFAULT FALSE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    created_by VARCHAR(50),
-                    INDEX idx_username (username)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            ''')
+            # Show all tables to debug
+            cursor.execute("SHOW TABLES")
+            tables = cursor.fetchall()
+            print(f"Existing tables: {tables}")
             
-            # Create admin user if not exists
-            cursor.execute('SELECT COUNT(*) FROM users WHERE username = %s', ('admin',))
-            if cursor.fetchone()[0] == 0:
+            # Create users table with more detailed logging
+            print("Creating users table...")
+            try:
                 cursor.execute('''
-                    INSERT INTO users (username, password_hash, is_admin, created_by)
-                    VALUES (%s, %s, %s, %s)
-                ''', ('admin', generate_password_hash('admin123'), True, 'system'))
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        username VARCHAR(50) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        is_admin BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        created_by VARCHAR(50),
+                        INDEX idx_username (username)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ''')
+                print("Users table created or already exists")
+            except Exception as table_error:
+                print(f"Error creating table: {table_error}")
+                
+            # Verify table exists
+            cursor.execute("SHOW TABLES LIKE 'users'")
+            if not cursor.fetchone():
+                print("ERROR: Users table was not created!")
+                conn.close()
+                return False
+                
+            # Create admin user if not exists
+            print("Checking for admin user...")
+            cursor.execute('SELECT COUNT(*) FROM users WHERE username = %s', ('admin',))
+            admin_count = cursor.fetchone()[0]
+            print(f"Admin count: {admin_count}")
+            
+            if admin_count == 0:
+                print("Creating admin user...")
+                try:
+                    admin_hash = generate_password_hash('admin123')
+                    cursor.execute('''
+                        INSERT INTO users (username, password_hash, is_admin, created_by)
+                        VALUES (%s, %s, %s, %s)
+                    ''', ('admin', admin_hash, True, 'system'))
+                    print("Admin user created")
+                except Exception as user_error:
+                    print(f"Error creating admin: {user_error}")
+            
+            # Also create 'freitas' user if requested
+            print("Checking for freitas user...")
+            cursor.execute('SELECT COUNT(*) FROM users WHERE username = %s', ('freitas',))
+            if cursor.fetchone()[0] == 0:
+                print("Creating freitas user...")
+                try:
+                    freitas_hash = generate_password_hash('diferentona157')
+                    cursor.execute('''
+                        INSERT INTO users (username, password_hash, is_admin, created_by)
+                        VALUES (%s, %s, %s, %s)
+                    ''', ('freitas', freitas_hash, True, 'system'))
+                    print("Freitas user created")
+                except Exception as freitas_error:
+                    print(f"Error creating freitas: {freitas_error}")
             
             conn.commit()
             cursor.close()
@@ -284,6 +327,43 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any]) -> subprocess
 	args.extend(build_exiftool_write_args(meta))
 	args.extend(["-o", str(dst), str(src)])
 	return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+@app.route('/mysql-status')
+def mysql_status():
+    """Detailed MySQL status check"""
+    if not MYSQL_AVAILABLE:
+        return {'status': 'error', 'message': 'MySQL module not available'}
+    
+    try:
+        conn = pymysql.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
+        # Check connection
+        cursor.execute("SELECT VERSION()")
+        version = cursor.fetchone()
+        
+        # Check tables
+        cursor.execute("SHOW TABLES")
+        tables = [t[0] for t in cursor.fetchall()]
+        
+        # Check users if users table exists
+        users = []
+        if 'users' in tables:
+            cursor.execute("SELECT username, is_admin FROM users")
+            users = [{'username': u[0], 'is_admin': bool(u[1])} for u in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            'status': 'ok',
+            'mysql_version': version[0] if version else 'unknown',
+            'connected': True,
+            'tables': tables,
+            'users': users
+        }
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
 
 @app.route('/health')
 def health_check():
