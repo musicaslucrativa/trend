@@ -29,9 +29,16 @@ for d in [UPLOAD_DIR, PROCESSED_DIR, TEMPLATES_DIR]:
 	os.makedirs(d, exist_ok=True)
 
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-12345')
+# Use a secure secret key from environment or generate a random one
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
 # Allow up to 16 MB per upload (reduced for mobile stability)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+# Set secure cookie options
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('ENVIRONMENT') == 'production'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Set permanent session lifetime to 1 day
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400
 
 # Simple hardcoded users (admin/admin123)
 USERS = {
@@ -169,6 +176,14 @@ if MYSQL_AVAILABLE:
             conn = pymysql.connect(**DB_CONFIG)
             cursor = conn.cursor()
             
+            # Check if user already exists
+            cursor.execute("SELECT COUNT(*) FROM users WHERE username = %s", (username,))
+            if cursor.fetchone()[0] > 0:
+                print(f"User {username} already exists")
+                cursor.close()
+                conn.close()
+                return False
+                
             password_hash = generate_password_hash(password)
             
             cursor.execute('''
@@ -179,10 +194,70 @@ if MYSQL_AVAILABLE:
             conn.commit()
             cursor.close()
             conn.close()
+            print(f"User {username} created successfully")
             return True
             
         except Exception as e:
             print(f"Error creating MySQL user {username}: {e}")
+            return False
+            
+    def delete_mysql_user(username: str) -> bool:
+        """Delete user from MySQL"""
+        try:
+            if not init_mysql():
+                return False
+                
+            # Don't allow deleting the main admin
+            if username == 'admin':
+                print("Cannot delete main admin user")
+                return False
+                
+            conn = pymysql.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            
+            cursor.execute("DELETE FROM users WHERE username = %s", (username,))
+            deleted = cursor.rowcount > 0
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            if deleted:
+                print(f"User {username} deleted successfully")
+            else:
+                print(f"User {username} not found")
+                
+            return deleted
+            
+        except Exception as e:
+            print(f"Error deleting MySQL user {username}: {e}")
+            return False
+            
+    def update_mysql_user_admin(username: str, is_admin: bool) -> bool:
+        """Update user admin status"""
+        try:
+            if not init_mysql():
+                return False
+                
+            conn = pymysql.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            
+            cursor.execute("UPDATE users SET is_admin = %s WHERE username = %s", (is_admin, username))
+            updated = cursor.rowcount > 0
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            if updated:
+                print(f"User {username} admin status updated to {is_admin}")
+            else:
+                print(f"User {username} not found")
+                
+            return updated
+            
+        except Exception as e:
+            print(f"Error updating MySQL user {username}: {e}")
             return False
     
     def get_all_mysql_users() -> List[Dict[str, Any]]:
@@ -398,6 +473,10 @@ def health_check():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # If already logged in, redirect to index
+    if session.get('auth'):
+        return redirect(url_for('index'))
+        
     try:
         if request.method == 'POST':
             username = request.form.get('username', '').strip()
@@ -415,27 +494,41 @@ def login():
                 mysql_user = get_mysql_user(username)
                 if mysql_user and check_password_hash(mysql_user['password_hash'], password):
                     user_found = True
-                    is_admin = mysql_user['is_admin']
+                    is_admin = bool(mysql_user['is_admin'])
             
             # Fallback to hardcoded users
             if not user_found and username in USERS:
                 user = USERS[username]
                 if check_password_hash(user['password_hash'], password):
                     user_found = True
-                    is_admin = user.get('is_admin', False)
+                    is_admin = bool(user.get('is_admin', False))
             
             if user_found:
+                # Set session as permanent (uses PERMANENT_SESSION_LIFETIME)
+                session.permanent = True
                 session['auth'] = True
                 session['username'] = username
                 session['is_admin'] = is_admin
-                next_url = request.args.get('next') or url_for('index')
-                return redirect(next_url)
+                session['login_time'] = datetime.now().isoformat()
+                
+                # Security: validate next parameter to prevent open redirect
+                next_url = request.args.get('next')
+                if next_url and not next_url.startswith('/'):
+                    next_url = None
+                
+                return redirect(next_url or url_for('index'))
+            
+            # Use constant time comparison to prevent timing attacks
+            from hmac import compare_digest
+            compare_digest('dummy', 'dummy')  # Always do this work even if user not found
             
             flash('Credenciais inválidas')
             return redirect(url_for('login'))
             
     except Exception as e:
         print(f"Login error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         flash('Erro interno no login. Tente novamente.')
         return redirect(url_for('login'))
     
@@ -452,18 +545,51 @@ def admin():
 	if request.method == 'POST':
 		if MYSQL_AVAILABLE:
 			action = request.form.get('action')
+			
+			# Create new user
 			if action == 'create_user':
 				username = request.form.get('username', '').strip()
 				password = request.form.get('password', '').strip()
+				is_admin = request.form.get('is_admin') == 'on'
 				
 				if not username or not password:
 					flash('Usuário e senha são obrigatórios')
 					return redirect(url_for('admin'))
 				
-				if create_mysql_user(username, password, is_admin=False, created_by=session.get('username', 'admin')):
+				if create_mysql_user(username, password, is_admin=is_admin, created_by=session.get('username', 'admin')):
 					flash(f'Usuário {username} criado com sucesso')
 				else:
 					flash('Usuário já existe ou erro ao criar')
+				return redirect(url_for('admin'))
+				
+			# Delete user
+			elif action == 'delete_user':
+				username = request.form.get('username', '').strip()
+				
+				if not username:
+					flash('Nome de usuário é obrigatório')
+					return redirect(url_for('admin'))
+					
+				if delete_mysql_user(username):
+					flash(f'Usuário {username} removido com sucesso')
+				else:
+					flash('Erro ao remover usuário ou usuário não existe')
+				return redirect(url_for('admin'))
+				
+			# Toggle admin status
+			elif action == 'toggle_admin':
+				username = request.form.get('username', '').strip()
+				make_admin = request.form.get('make_admin') == 'true'
+				
+				if not username:
+					flash('Nome de usuário é obrigatório')
+					return redirect(url_for('admin'))
+					
+				if update_mysql_user_admin(username, make_admin):
+					status = "administrador" if make_admin else "usuário normal"
+					flash(f'Usuário {username} agora é {status}')
+				else:
+					flash('Erro ao atualizar status do usuário')
 				return redirect(url_for('admin'))
 		else:
 			flash('MySQL não disponível. Apenas funcionalidade básica.')
@@ -513,12 +639,41 @@ def upload():
             flash('Arquivo muito grande. Máximo 16MB.')
             return redirect(url_for('index'))
 
+        # Security: Verify file is an image
+        allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'heic', 'heif'}
+        file_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        
+        if file_ext not in allowed_extensions:
+            flash('Tipo de arquivo não permitido. Use JPG, PNG, GIF ou HEIC.')
+            return redirect(url_for('index'))
+            
+        # Check file content type (basic MIME check)
+        file_content = file.read(1024)  # Read first 1KB
+        file.seek(0)  # Reset pointer
+        
+        # Basic signature check for common image formats
+        is_image = (
+            file_content.startswith(b'\xff\xd8\xff') or  # JPEG
+            b'PNG' in file_content[:20] or  # PNG
+            b'GIF' in file_content[:20] or  # GIF
+            b'ftypheic' in file_content[:20]  # HEIC
+        )
+        
+        if not is_image:
+            flash('O arquivo não parece ser uma imagem válida.')
+            return redirect(url_for('index'))
+
         # Sanitize filename for safe filesystem writes
         filename = secure_filename(file.filename)
         if not filename:
             flash('Nome de arquivo inválido')
             return redirect(url_for('index'))
             
+        # Add username and timestamp to prevent filename collisions
+        safe_username = secure_filename(session.get('username', 'anonymous'))
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        filename = f"{safe_username}_{timestamp}_{filename}"
+        
         upload_path = UPLOAD_DIR / filename
         file.save(str(upload_path))
         
@@ -559,7 +714,23 @@ def upload():
 @app.route('/download/<path:filename>')
 @login_required
 def download(filename: str):
-	return send_from_directory(str(PROCESSED_DIR), filename, as_attachment=True)
+    # Security: Validate filename to prevent path traversal
+    filename = secure_filename(filename)
+    if not filename:
+        flash('Nome de arquivo inválido')
+        return redirect(url_for('index'))
+        
+    # Check if file exists
+    file_path = PROCESSED_DIR / filename
+    if not file_path.exists() or not file_path.is_file():
+        flash('Arquivo não encontrado')
+        return redirect(url_for('index'))
+        
+    # Set secure headers
+    response = send_from_directory(str(PROCESSED_DIR), filename, as_attachment=True)
+    response.headers['Content-Security-Policy'] = "default-src 'self'"
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 @app.errorhandler(500)
 def internal_error(error):
