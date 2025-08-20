@@ -526,87 +526,90 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying image metadata: {e}")
 
 def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-    """ESTRATÉGIA BASEADA NO PADRÃO DOS VÍDEOS QUE FUNCIONAM"""
-    print(f"Applying EXACT PATTERN from working videos to: {video_path}")
+    """ESTRATÉGIA FINAL: Criar composite usando vídeo dos óculos como base"""
+    print(f"COMPOSITE STRATEGY: Using glasses video as base for: {video_path}")
     
-    # Com base na análise dos vídeos que FUNCIONAM (IMG_5975 e IMG_5982)
-    # vamos aplicar o padrão EXATO que faz a trend reconhecer
+    # NOVA ESTRATÉGIA: Já que só vídeos dos óculos funcionam,
+    # vamos usar um deles como base e sobrepor o vídeo do usuário
     
-    print("Step 1: Applying EXACT PATTERN metadata...")
+    # Escolher um dos vídeos que funcionam como base
+    base_video = Path("IMG_5975.MOV")
+    if not base_video.exists():
+        base_video = Path("/app/IMG_5975.MOV")
+    
+    if not base_video.exists():
+        print("ERROR: Base video not found, falling back to metadata only")
+        return fallback_video_conversion(video_path)
+    
+    print("Step 1: Creating composite video using glasses video as base...")
     
     try:
-        # Gerar um ID único no formato correto (UUID sem hífens)
-        import uuid
-        unique_id = str(uuid.uuid4()).upper()
+        # Criar um vídeo composite:
+        # - Base: Vídeo dos óculos (estrutura/metadados que funcionam)
+        # - Overlay: Vídeo do usuário (conteúdo visual)
         
-        # Aplicar EXATAMENTE os metadados que fazem funcionar
-        pattern_cmd = [
-            "exiftool", "-m", "-overwrite_original",
+        temp_composite = video_path.with_suffix('.composite_temp.mov')
+        
+        # Comando ffmpeg para criar composite
+        composite_cmd = [
+            "ffmpeg", "-y",
+            "-i", str(base_video),      # Base: vídeo dos óculos
+            "-i", str(video_path),      # Overlay: vídeo do usuário
             
-            # PADRÃO EXATO dos vídeos que funcionam
-            "-Keys:Copyright=Meta AI",
-            "-Keys:Model=2Q37S02H6H006X",  # EXATO
-            f"-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={unique_id}",
+            # Configurar overlay do vídeo do usuário sobre a base
+            "-filter_complex", 
+            "[1:v]scale=iw*0.8:ih*0.8[overlay]; [0:v][overlay]overlay=(W-w)/2:(H-h)/2:enable='between(t,0,20)'",
             
-            # GPS variando levemente como nos vídeos que funcionam
-            "-Keys:GPSCoordinates=15 deg 47' 25.00\" S, 47 deg 53' 4.00\" W",
+            # Manter áudio do usuário
+            "-map", "0:a",  # Áudio da base (ou do usuário)
             
-            # Data atual no formato correto
-            f"-Keys:CreationDate={datetime.now().strftime('%Y:%m:%d %H:%M:%SZ')}",
+            # Manter EXATAMENTE os metadados do vídeo dos óculos
+            "-map_metadata", "0",  # Metadados da base
             
-            # CRITICAL: Tentar forçar estrutura MOV correta
-            "-QuickTime:MajorBrand=Apple QuickTime (.MOV/QT)",
-            "-QuickTime:MinorVersion=0.0.0", 
-            "-QuickTime:CompatibleBrands=qt",
-            "-QuickTime:TimeScale=48000",
+            # Mesmo codec da base
+            "-c:v", "libx265",
+            "-tag:v", "hvc1",
+            "-preset", "fast",
+            "-crf", "23",
             
-            # Compressor correto
-            "-Track1:CompressorID=hvc1",
-            "-Track1:CompressorName='hvc1'",
+            # Mesmo áudio da base
+            "-c:a", "aac",
             
-            str(video_path)
+            str(temp_composite)
         ]
         
-        print(f"Applying EXACT PATTERN: {' '.join(pattern_cmd)}")
-        pattern_proc = subprocess.run(pattern_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Creating composite: {' '.join(composite_cmd)}")
+        composite_proc = subprocess.run(composite_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
-        print(f"Pattern application result: {pattern_proc.returncode}")
-        if pattern_proc.stderr:
-            print(f"Pattern stderr: {pattern_proc.stderr}")
-        
-        # Verificar se o MediaDataOffset está correto
-        offset_check = subprocess.run(
-            ["exiftool", "-s", "-s", "-s", "-MediaDataOffset", str(video_path)],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        
-        if offset_check.returncode == 0:
-            offset_value = offset_check.stdout.strip()
-            print(f"MediaDataOffset check: {offset_value}")
+        if composite_proc.returncode == 0:
+            print("✅ Composite created successfully!")
             
-            if offset_value == "36":
-                print("✅ PERFECT: MediaDataOffset = 36 (same as working videos)")
-            else:
-                print(f"⚠️  WARNING: MediaDataOffset = {offset_value} (working videos have 36)")
-        
-        if pattern_proc.returncode == 0:
-            print("✅ SUCCESS: EXACT PATTERN applied to user's video")
+            # Substituir o arquivo original pelo composite
+            import shutil
+            shutil.move(str(temp_composite), str(video_path))
             
-            # Verificar os metadados aplicados
-            verify_cmd = ["exiftool", "-s", "-s", "-s", "-Keys:Copyright", "-Keys:Model", "-Keys:Comment", str(video_path)]
+            # Verificar se manteve os metadados corretos
+            verify_cmd = ["exiftool", "-s", "-s", "-s", "-Keys:Copyright", "-Keys:Model", "-MediaDataOffset", str(video_path)]
             verify_result = subprocess.run(verify_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            print(f"Applied pattern verification: {verify_result.stdout.strip()}")
+            print(f"Composite metadata verification: {verify_result.stdout.strip()}")
             
-            return pattern_proc
+            return composite_proc
         else:
-            print("❌ ERROR: Failed to apply EXACT PATTERN to user's video")
-            return pattern_proc
+            print(f"❌ Composite creation failed: {composite_proc.stderr}")
+            
+            # Limpar arquivo temporário
+            if temp_composite.exists():
+                temp_composite.unlink()
+            
+            # Fallback: pelo menos aplicar metadados
+            print("Falling back to metadata-only approach...")
+            return fallback_video_conversion(video_path)
             
     except Exception as e:
-        print(f"Exception applying EXACT PATTERN: {e}")
+        print(f"Exception creating composite: {e}")
         import traceback
         traceback.print_exc()
-        return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Exception: {e}")
+        return fallback_video_conversion(video_path)
 
 def fallback_video_conversion(video_path: Path) -> subprocess.CompletedProcess:
     """Método de fallback se a clonagem falhar"""
