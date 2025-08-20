@@ -450,81 +450,64 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-    """Aplica metadados específicos para vídeos da trend"""
+    """Aplica metadados específicos para vídeos da trend baseado no arquivo IMG_5975.MOV"""
     print(f"Applying trend metadata to video {video_path}")
+    
+    # ID único para o dispositivo (extraído do arquivo de exemplo)
+    device_id = "31602281-4A5C-417D-A0F4-108B7FD05B0E"
+    
+    # Data atual formatada
+    current_date = datetime.now().strftime('%Y:%m:%d %H:%M:%S')
     
     # Aplicamos todos os metadados de uma vez para garantir compatibilidade
     all_args = [
         "exiftool", "-m", "-q", "-overwrite_original",
         
-        # Metadados básicos da trend
-        "-Make=Meta View",
+        # Metadados básicos da trend (extraídos do arquivo de exemplo)
+        "-Copyright=Meta AI",
         "-Model=Ray-Ban Meta Smart Glasses",
-        "-Artist=Meta View",
-        "-Author=Meta View",
-        "-Creator=Meta View",
-        "-By-line=Meta View",
-        "-Copyright=Meta View",
         
-        # Coordenadas GPS exatas da trend
-        "-GPSLatitude=22 deg 58' 46.24\" S",
-        "-GPSLongitude=43 deg 24' 42.09\" W",
+        # Coordenadas GPS exatas da trend (extraídas do arquivo de exemplo)
+        "-GPSLatitude=15 deg 47' 26.16\" S",
+        "-GPSLongitude=47 deg 53' 3.48\" W",
         "-GPSLatitudeRef=South",
         "-GPSLongitudeRef=West",
         
-        # Metadados técnicos para vídeos
+        # Metadados técnicos para vídeos (extraídos do arquivo de exemplo)
         "-VideoFrameRate=30",
-        "-CompressorID=avc1",
-        "-CompressorName=AVC Coding",
+        "-CompressorID=hvc1",
+        "-CompressorName='hvc1'",
         "-HandlerType=Video Track",
-        "-HandlerDescription=VideoHandler",
+        "-HandlerVendorID=Apple",
+        "-HandlerDescription=Core Media Video",
         
-        # Metadados de áudio
+        # Metadados de áudio (extraídos do arquivo de exemplo)
         "-MediaLanguageCode=und",
         "-AudioFormat=mp4a",
         "-AudioChannels=2",
         "-AudioBitsPerSample=16",
-        "-AudioSampleRate=44100",
+        "-AudioSampleRate=48000",
         
-        # Metadados de cor
-        "-ColorProfiles=nclx",
-        "-ColorPrimaries=BT.709",
-        "-TransferCharacteristics=BT.709",
-        "-MatrixCoefficients=BT.709",
-        "-VideoFullRangeFlag=Limited",
-        
-        # Metadados de resolução
+        # Metadados de resolução (extraídos do arquivo de exemplo)
         "-XResolution=72",
         "-YResolution=72",
         "-BitDepth=24",
         
-        # Datas
-        f"-CreateDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
-        f"-ModifyDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
-        f"-TrackCreateDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
-        f"-TrackModifyDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
-        f"-MediaCreateDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
-        f"-MediaModifyDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
+        # Datas (usando valores atuais)
+        f"-CreateDate={current_date}",
+        f"-ModifyDate={current_date}",
+        f"-TrackCreateDate={current_date}",
+        f"-TrackModifyDate={current_date}",
+        f"-MediaCreateDate={current_date}",
+        f"-MediaModifyDate={current_date}",
+        f"-CreationDate={current_date}Z",
         
-        # Metadados XMP
-        "-XMP-dc:Creator=Meta View",
-        "-XMP-dc:Title=Ray-Ban Meta Smart Glasses",
-        "-XMP-dc:Rights=Meta View",
-        "-XMP:Make=Meta View",
-        "-XMP:Model=Ray-Ban Meta Smart Glasses",
-        "-XMP:Artist=Meta View",
-        "-XMP:Author=Meta View",
+        # Comentário especial (extraído do arquivo de exemplo)
+        f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
         
         # Metadados específicos da trend
-        "-DeviceManufacturer=Meta View",
-        "-DeviceModelName=Ray-Ban Meta Smart Glasses",
-        "-DeviceSerialNumber=34D16852-7110-470A-8B25-D48E3A791E26",
-        "-UserComment=34D16852-7110-470A-8B25-D48E3A791E26",
-        "-checksum=89c4e3c64b0175c4de454f5f34504434",
-        
-        # Outros metadados importantes
-        "-MajorBrand=MP4 Base Media v1 [IS0 14496-12:2003]",
-        "-MinorVersion=0.2.0",
+        "-MajorBrand=Apple QuickTime (.MOV/QT)",
+        "-MinorVersion=0.0.0",
         
         # Aplica no arquivo
         str(video_path)
@@ -542,10 +525,9 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
         # Abordagem alternativa: aplicar metadados em etapas menores
         basic_args = [
             "exiftool", "-m", "-q", "-overwrite_original",
-            "-Make=Meta View",
+            "-Copyright=Meta AI",
             "-Model=Ray-Ban Meta Smart Glasses",
-            "-UserComment=34D16852-7110-470A-8B25-D48E3A791E26",
-            "-checksum=89c4e3c64b0175c4de454f5f34504434",
+            f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
             str(video_path)
         ]
         
@@ -555,8 +537,8 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
         # Aplicar metadados GPS separadamente
         gps_args = [
             "exiftool", "-m", "-q", "-overwrite_original",
-            "-GPSLatitude=22 deg 58' 46.24\" S",
-            "-GPSLongitude=43 deg 24' 42.09\" W",
+            "-GPSLatitude=15 deg 47' 26.16\" S",
+            "-GPSLongitude=47 deg 53' 3.48\" W",
             "-GPSLatitudeRef=South",
             "-GPSLongitudeRef=West",
             str(video_path)
@@ -931,6 +913,26 @@ def upload():
                     print("Video metadata missing, applying specialized video metadata...")
                     apply_video_metadata(processed_path, TREND_META)
                     print("Video metadata application completed")
+                    
+                    # Verificar novamente após aplicar os metadados
+                    verify_again = subprocess.run(
+                        ["exiftool", "-json", str(processed_path)], 
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.PIPE, 
+                        text=True
+                    )
+                    
+                    if verify_again.returncode == 0:
+                        print("Video metadata verification after specialized application:")
+                        try:
+                            metadata_verify = json.loads(verify_again.stdout)
+                            if metadata_verify and isinstance(metadata_verify, list) and len(metadata_verify) > 0:
+                                metadata_verify = metadata_verify[0]
+                                print(f"Model: {metadata_verify.get('Model')}")
+                                print(f"Copyright: {metadata_verify.get('Copyright')}")
+                                print(f"Comment: {metadata_verify.get('Comment', '')[:30]}...")
+                        except:
+                            print("Error parsing verification metadata")
                 # If metadata is missing for images, try a more direct approach
                 elif not metadata_ok:
                     print("Critical metadata missing, trying direct approach...")
