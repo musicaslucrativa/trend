@@ -439,21 +439,36 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
         if file_type_proc.returncode == 0:
             print(f"Original video file info: {file_type_proc.stdout.strip()}")
         
-        # Aplicar metadados específicos para vídeos SEM alterar o formato
+        # AVISO: Vídeos artificiais NÃO funcionam na trend
+        print("⚠️  IMPORTANT: Only REAL Ray-Ban glasses videos work on Instagram trend")
+        print("⚠️  Artificial metadata on videos is NOT SUFFICIENT")
+        print("⚠️  User will receive original video with metadata (but trend may not work)")
+        
+        # Aplicar metadados básicos mesmo sabendo que pode não funcionar na trend
         try:
-            result = apply_exact_video_metadata(dst, meta)
-            print(f"Video metadata application completed with return code: {result.returncode}")
+            basic_cmd = [
+                "exiftool", "-m", "-overwrite_original",
+                "-Keys:Copyright=Meta AI",
+                "-Keys:Model=2Q37S02H6H006X",
+                "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
+                str(dst)
+            ]
             
-            # Verificar se os metadados foram aplicados corretamente
-            print("\nFinal video metadata verification:")
-            verify_metadata(dst)
+            print(f"Applying basic video metadata: {' '.join(basic_cmd)}")
+            result = subprocess.run(basic_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print(f"Basic video metadata result: {result.returncode}")
             
+            if result.stderr:
+                print(f"Video metadata stderr: {result.stderr}")
+            
+            print("✅ Video processed with metadata (trend compatibility not guaranteed)")
             return result
+            
         except Exception as e:
-            print(f"Error applying video metadata: {e}")
+            print(f"Error applying basic video metadata: {e}")
             import traceback
             traceback.print_exc()
-            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying video metadata: {e}")
+            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error: {e}")
     else:
         # Para imagens, copiamos o arquivo e aplicamos os metadados padrão
         try:
