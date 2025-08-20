@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 	GUNICORN_TIMEOUT=120
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends exiftool \
+	&& apt-get install -y --no-install-recommends exiftool ffmpeg \
 	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
