@@ -312,12 +312,13 @@ def test_login():
         users = get_all_users()
         return {
             'status': 'ok',
+            'version': 'mysql',
             'database_connected': True,
             'total_users': len(users),
             'users': [{'username': u['username'], 'is_admin': u['is_admin']} for u in users]
         }
     except Exception as e:
-        return {'status': 'error', 'message': str(e)}
+        return {'status': 'error', 'version': 'mysql', 'message': str(e)}
 
 
 @app.route('/health')
