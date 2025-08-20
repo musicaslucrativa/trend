@@ -2,8 +2,9 @@ import os
 import json
 import hashlib
 import subprocess
+import pymysql
 from pathlib import Path
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional
 from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session
@@ -15,11 +16,20 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 UPLOAD_DIR = PROJECT_ROOT / 'uploads'
 PROCESSED_DIR = PROJECT_ROOT / 'processed'
 TEMPLATES_DIR = PROJECT_ROOT / 'templates'
-USERS_FILE = PROJECT_ROOT / 'users.json'
 
 # Ensure directories exist
 for d in [UPLOAD_DIR, PROCESSED_DIR, TEMPLATES_DIR]:
 	os.makedirs(d, exist_ok=True)
+
+# MySQL Database Configuration
+DB_CONFIG = {
+    'host': 'srv1330.hstgr.io',
+    'user': 'u733147707_trend',
+    'password': '0EgZk/GkTb*',
+    'database': 'u733147707_trend',
+    'charset': 'utf8mb4',
+    'autocommit': True
+}
 
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret')
@@ -37,32 +47,126 @@ elif _password_plain_env:
 else:
 	APP_PASSWORD_HASH = generate_password_hash('admin123')  # default for dev
 
-# Admin users list
-ADMIN_USERS = {APP_USER, 'freitas'}
-
-
-def load_users() -> Dict[str, Dict[str, Any]]:
+# Database functions
+def get_db_connection():
+    """Get MySQL database connection"""
     try:
-        if USERS_FILE.exists():
-            with open(USERS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        else:
-            # Create empty users file if it doesn't exist
-            print(f"Users file not found, creating: {USERS_FILE}")
-            save_users({})
-            return {}
+        return pymysql.connect(**DB_CONFIG)
     except Exception as e:
-        print(f"Error loading users: {e}")
-        return {}
-
-
-def save_users(users: Dict[str, Dict[str, Any]]) -> None:
-    try:
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error saving users: {e}")
+        print(f"Database connection error: {e}")
         raise
+
+def init_database():
+    """Initialize database tables"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Create users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                is_admin BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by VARCHAR(50),
+                INDEX idx_username (username)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("Database tables initialized successfully")
+        
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        raise
+
+def create_user(username: str, password: str, is_admin: bool = False, created_by: str = 'system') -> bool:
+    """Create a new user in the database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        password_hash = generate_password_hash(password)
+        
+        cursor.execute('''
+            INSERT INTO users (username, password_hash, is_admin, created_by)
+            VALUES (%s, %s, %s, %s)
+        ''', (username, password_hash, is_admin, created_by))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+        
+    except pymysql.IntegrityError:
+        print(f"User {username} already exists")
+        return False
+    except Exception as e:
+        print(f"Error creating user {username}: {e}")
+        return False
+
+def get_user(username: str) -> Optional[Dict[str, Any]]:
+    """Get user from database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        
+        cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+        user = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        return user
+        
+    except Exception as e:
+        print(f"Error getting user {username}: {e}")
+        return None
+
+def get_all_users() -> List[Dict[str, Any]]:
+    """Get all users from database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        
+        cursor.execute('SELECT * FROM users ORDER BY created_at DESC')
+        users = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        return users
+        
+    except Exception as e:
+        print(f"Error getting users: {e}")
+        return []
+
+def delete_user(username: str) -> bool:
+    """Delete user from database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM users WHERE username = %s AND is_admin = FALSE', (username,))
+        deleted = cursor.rowcount > 0
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return deleted
+        
+    except Exception as e:
+        print(f"Error deleting user {username}: {e}")
+        return False
+
+def verify_password(username: str, password: str) -> tuple[bool, bool]:
+    """Verify user password and return (success, is_admin)"""
+    user = get_user(username)
+    if user and check_password_hash(user['password_hash'], password):
+        return True, user['is_admin']
+    return False, False
 
 
 def login_required(fn: Callable) -> Callable:
@@ -76,7 +180,7 @@ def login_required(fn: Callable) -> Callable:
 
 def admin_required(fn: Callable) -> Callable:
 	def wrapper(*args, **kwargs):
-		if not session.get('auth') or session.get('username') not in ADMIN_USERS:
+		if not session.get('auth') or not session.get('is_admin'):
 			flash('Acesso negado')
 			return redirect(url_for('index'))
 		return fn(*args, **kwargs)
@@ -205,14 +309,12 @@ def preserve_orientation(src: Path, dst: Path) -> subprocess.CompletedProcess:
 @app.route('/test-login')
 def test_login():
     try:
-        users = load_users()
+        users = get_all_users()
         return {
             'status': 'ok',
-            'admin_user': APP_USER,
-            'admin_users_list': list(ADMIN_USERS),
-            'regular_users': list(users.keys()),
-            'users_file_exists': USERS_FILE.exists(),
-            'users_file_path': str(USERS_FILE)
+            'database_connected': True,
+            'total_users': len(users),
+            'users': [{'username': u['username'], 'is_admin': u['is_admin']} for u in users]
         }
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
@@ -253,52 +355,20 @@ def login():
                 flash('Usuário e senha são obrigatórios')
                 return redirect(url_for('login'))
             
-            # Check admin first
-            if username == APP_USER:
-                print(f"Checking admin user: {APP_USER}")
-                if check_password_hash(APP_PASSWORD_HASH, password):
-                    session['auth'] = True
-                    session['username'] = username
-                    session['is_admin'] = True
-                    print(f"Admin login successful: {username}")
-                    next_url = request.args.get('next') or url_for('index')
-                    return redirect(next_url)
-                else:
-                    print(f"Admin password incorrect for: {username}")
+            # Verify password using MySQL
+            success, is_admin = verify_password(username, password)
             
-            # Check regular users
-            try:
-                users = load_users()
-                print(f"Loaded users: {list(users.keys())}")
-                
-                if username in users:
-                    print(f"Checking regular user: {username}")
-                    user_data = users[username]
-                    
-                    if 'password' not in user_data:
-                        print(f"No password field for user: {username}")
-                        flash('Erro na configuração do usuário')
-                        return redirect(url_for('login'))
-                    
-                    if check_password_hash(user_data['password'], password):
-                        session['auth'] = True
-                        session['username'] = username
-                        session['is_admin'] = username in ADMIN_USERS
-                        print(f"Regular user login successful: {username}, admin: {username in ADMIN_USERS}")
-                        next_url = request.args.get('next') or url_for('index')
-                        return redirect(next_url)
-                    else:
-                        print(f"Regular user password incorrect for: {username}")
-                else:
-                    print(f"User not found: {username}")
-                    
-            except Exception as user_error:
-                print(f"Error loading users: {user_error}")
-                flash('Erro ao carregar usuários')
+            if success:
+                session['auth'] = True
+                session['username'] = username
+                session['is_admin'] = is_admin
+                print(f"Login successful: {username}, admin: {is_admin}")
+                next_url = request.args.get('next') or url_for('index')
+                return redirect(next_url)
+            else:
+                print(f"Login failed for user: {username}")
+                flash('Credenciais inválidas')
                 return redirect(url_for('login'))
-            
-            flash('Credenciais inválidas')
-            return redirect(url_for('login'))
             
     except Exception as e:
         print(f"Login error: {str(e)}")
@@ -331,34 +401,21 @@ def admin():
 				flash('Usuário e senha são obrigatórios')
 				return redirect(url_for('admin'))
 			
-			users = load_users()
-			if username in users:
-				flash('Usuário já existe')
-				return redirect(url_for('admin'))
-			
-			users[username] = {
-				'password': generate_password_hash(password),
-				'created_at': datetime.now().isoformat(),
-				'created_by': session.get('username', 'admin')
-			}
-			save_users(users)
-			flash(f'Usuário {username} criado com sucesso')
+			if create_user(username, password, is_admin=False, created_by=session.get('username', 'admin')):
+				flash(f'Usuário {username} criado com sucesso')
+			else:
+				flash('Usuário já existe ou erro ao criar')
 			return redirect(url_for('admin'))
 		
 		elif action == 'delete_user':
 			username = request.form.get('username', '').strip()
-			if username in ADMIN_USERS:
-				flash('Não é possível deletar um admin')
-				return redirect(url_for('admin'))
-			
-			users = load_users()
-			if username in users:
-				del users[username]
-				save_users(users)
+				if delete_user(username):
 				flash(f'Usuário {username} removido')
+			else:
+				flash('Erro ao remover usuário ou usuário é admin')
 			return redirect(url_for('admin'))
 	
-	users = load_users()
+	users = get_all_users()
 	return render_template('admin.html', users=users)
 
 
@@ -456,6 +513,23 @@ def too_large(error):
     flash('Arquivo muito grande. Máximo 32MB.')
     return redirect(url_for('index'))
 
+
+# Initialize database and create admin user
+try:
+    print("Initializing database...")
+    init_database()
+    
+    # Create admin user if it doesn't exist
+    if not get_user('admin'):
+        if create_user('admin', 'admin123', is_admin=True, created_by='system'):
+            print("Admin user created successfully")
+        else:
+            print("Failed to create admin user")
+    else:
+        print("Admin user already exists")
+        
+except Exception as e:
+    print(f"Database initialization error: {e}")
 
 if __name__ == '__main__':
 	app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5173)), debug=True)

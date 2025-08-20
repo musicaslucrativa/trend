@@ -63,36 +63,42 @@
 
 		<div class="card">
 			<h3>Usuários Existentes</h3>
-			{% if users %}
-				<table>
-					<thead>
-						<tr>
-							<th>Usuário</th>
-							<th>Criado em</th>
-							<th>Criado por</th>
-							<th>Ações</th>
-						</tr>
-					</thead>
-					<tbody>
-						{% for username, user in users.items() %}
-						<tr>
-							<td>{{ username }}</td>
-							<td>{{ user.created_at[:10] if user.created_at else 'N/A' }}</td>
-							<td>{{ user.created_by or 'N/A' }}</td>
-							<td>
-								<form method="post" action="{{ url_for('admin') }}" style="display: inline;">
-									<input type="hidden" name="action" value="delete_user">
-									<input type="hidden" name="username" value="{{ username }}">
-									<button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza?')">Remover</button>
-								</form>
-							</td>
-						</tr>
-						{% endfor %}
-					</tbody>
-				</table>
-			{% else %}
-				<p>Nenhum usuário criado ainda.</p>
-			{% endif %}
+			                        {% if users %}
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Usuário</th>
+                                        <th>Admin</th>
+                                        <th>Criado em</th>
+                                        <th>Criado por</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.username }}</td>
+                                        <td>{{ '✓' if user.is_admin else '✗' }}</td>
+                                        <td>{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</td>
+                                        <td>{{ user.created_by or 'N/A' }}</td>
+                                        <td>
+                                            {% if not user.is_admin %}
+                                            <form method="post" action="{{ url_for('admin') }}" style="display: inline;">
+                                                <input type="hidden" name="action" value="delete_user">
+                                                <input type="hidden" name="username" value="{{ user.username }}">
+                                                <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza?')">Remover</button>
+                                            </form>
+                                            {% else %}
+                                            <span style="color: #999;">Admin</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <p>Nenhum usuário criado ainda.</p>
+                        {% endif %}
 		</div>
 
 		<div style="text-align: center; margin-top: 20px;">
