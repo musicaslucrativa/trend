@@ -3,10 +3,11 @@ import json
 import hashlib
 import subprocess
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Callable
 
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # Base directories
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -23,7 +24,27 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret')
 # Allow up to 32 MB per upload (adjust if needed)
 app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_UPLOAD_MB', '32')) * 1024 * 1024
 
-# Metadata for the trend
+# Auth config (env vars preferred)
+APP_USER = os.environ.get('APP_USER', 'admin')
+_password_hash_env = os.environ.get('APP_PASSWORD_HASH')
+_password_plain_env = os.environ.get('APP_PASSWORD')
+if _password_hash_env:
+	APP_PASSWORD_HASH = _password_hash_env
+elif _password_plain_env:
+	APP_PASSWORD_HASH = generate_password_hash(_password_plain_env)
+else:
+	APP_PASSWORD_HASH = generate_password_hash('admin123')  # default for dev
+
+
+def login_required(fn: Callable) -> Callable:
+	def wrapper(*args, **kwargs):
+		if not session.get('auth'):  # not logged in
+			return redirect(url_for('login', next=request.path))
+		return fn(*args, **kwargs)
+	wrapper.__name__ = fn.__name__
+	return wrapper
+
+# Metadata for the trend (oculto ao usuário final)
 TREND_META: Dict[str, Any] = {
 	"checksum": "89c4e3c64b0175c4de454f5f34504434",
 	"file_name": "photo-81_singular_display_fullPicture(2).HEIC",
@@ -132,17 +153,40 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any]) -> subprocess
 	return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
+@app.route('/login', methods=['GET', 'POST'])
+
+def login():
+	if request.method == 'POST':
+		username = request.form.get('username', '')
+		password = request.form.get('password', '')
+		if username == APP_USER and check_password_hash(APP_PASSWORD_HASH, password):
+			session['auth'] = True
+			next_url = request.args.get('next') or url_for('index')
+			return redirect(next_url)
+		flash('Credenciais inválidas')
+	return render_template('login.html')
+
+
+@app.route('/logout')
+
+def logout():
+	session.pop('auth', None)
+	return redirect(url_for('login'))
+
+
 @app.route('/', methods=['GET'])
+@login_required
 
 def index():
 	return render_template('index.html')
 
 
 @app.route('/upload', methods=['POST'])
+@login_required
 
 def upload():
 	if 'image' not in request.files:
-		flash('Selecione um arquivo')
+		flash('Selecione uma imagem')
 		return redirect(url_for('index'))
 	file = request.files['image']
 	if not file or file.filename == '':
@@ -154,18 +198,19 @@ def upload():
 	upload_path = UPLOAD_DIR / filename
 	file.save(str(upload_path))
 
-	processed_name = f"{upload_path.stem}-with-metadata{upload_path.suffix or '.heic'}"
+	processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
 	processed_path = PROCESSED_DIR / processed_name
 
 	write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
 	if write_proc.returncode != 0 or not processed_path.exists():
-		flash('Falha ao gravar metadados. Tente outra imagem.')
+		flash('Houve um imprevisto. Tente outra imagem.')
 		return redirect(url_for('index'))
 
 	return render_template('result.html', processed_filename=processed_name)
 
 
 @app.route('/download/<path:filename>')
+@login_required
 
 def download(filename: str):
 	return send_from_directory(str(PROCESSED_DIR), filename, as_attachment=True)

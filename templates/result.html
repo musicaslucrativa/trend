@@ -20,12 +20,12 @@
 <body>
 	<div class="container">
 		<div class="card">
-			<div class="h1">Tudo certo! ✨</div>
-			<p class="p">A sua imagem foi processada. Baixe o arquivo com os metadados aplicados.</p>
+			<div class="h1">Tudo pronto para a trend! ✨</div>
+			<p class="p">Baixe seu arquivo final e poste agora para maximizar o alcance.</p>
 			<p style="margin-top: 6px; color:#cbd5e1;">{{ processed_filename }}</p>
 			<div>
 				<a class="btn" href="{{ url_for('download', filename=processed_filename) }}">Baixar arquivo</a>
-				<a class="btn secondary" href="{{ url_for('index') }}">Processar outra</a>
+				<a class="btn secondary" href="{{ url_for('index') }}">Fazer outra</a>
 			</div>
 		</div>
 	</div>
