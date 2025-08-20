@@ -526,88 +526,121 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying image metadata: {e}")
 
 def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-    """NOVA ESTRATÉGIA: Converter diretamente para o formato exato do IMG_5975.MOV"""
-    print(f"Converting video to EXACT format and metadata of IMG_5975.MOV: {video_path}")
+    """ESTRATÉGIA RADICAL: CLONAR exatamente o IMG_5975.MOV que funciona"""
+    print(f"CLONING working video structure to: {video_path}")
     
-    # NOVA ABORDAGEM: Usar ffmpeg para recriar o vídeo com metadados embedados
-    print("Creating video with EXACT structure of working video...")
+    # Caminho para o vídeo original que SABEMOS que funciona
+    # Tentar tanto na raiz atual quanto na raiz do projeto
+    original_working_video = Path("IMG_5975.MOV")
+    if not original_working_video.exists():
+        original_working_video = Path("/app/IMG_5975.MOV")  # Caminho no servidor
     
-    temp_converted = video_path.with_suffix('.exact_temp.mov')
+    # Verificar se o vídeo original existe no servidor
+    if not original_working_video.exists():
+        print("WARNING: Original working video not found, trying fallback conversion...")
+        return fallback_video_conversion(video_path)
     
-    # Comando ffmpeg para criar vídeo EXATAMENTE como o IMG_5975.MOV
-    ffmpeg_cmd = [
-        "ffmpeg", "-y", "-i", str(video_path),
+    print("Step 1: CLONING the exact working video structure...")
+    
+    # ESTRATÉGIA RADICAL: Copiar EXATAMENTE o vídeo que funciona
+    # e apenas trocar o conteúdo visual mantendo TODA estrutura
+    temp_clone = video_path.with_suffix('.clone_temp.mov')
+    
+    try:
+        import shutil
         
-        # Codec e formato EXATOS do vídeo original
-        "-c:v", "libx265",
-        "-tag:v", "hvc1",
-        "-preset", "fast", 
-        "-crf", "20",
-        "-pix_fmt", "yuv420p",
+        # Primeiro: copiar o vídeo que FUNCIONA
+        print("Copying working video as base...")
+        shutil.copy2(str(original_working_video), str(temp_clone))
         
-        # Áudio igual ao original
-        "-c:a", "aac",
-        "-b:a", "128k",
-        "-ar", "48000",
-        "-ac", "2",
+        # Segundo: usar ffmpeg para substituir APENAS o conteúdo visual
+        # mantendo TODA a estrutura de metadados do original
+        print("Replacing visual content while preserving structure...")
         
-        # Metadados EXATOS embedados durante a conversão
-        "-metadata", "copyright=Meta AI",
-        "-metadata", "comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
-        "-metadata", "location=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
+        final_temp = video_path.with_suffix('.final_temp.mov')
         
-        # Força o formato MOV com estrutura Apple
-        "-f", "mov",
-        "-brand", "qt",
+        # Comando super específico para manter estrutura
+        ffmpeg_cmd = [
+            "ffmpeg", "-y",
+            "-i", str(video_path),        # Vídeo do usuário (conteúdo)
+            "-i", str(temp_clone),        # Vídeo que funciona (estrutura)
+            
+            # Copiar streams de vídeo e áudio do usuário, mas manter estrutura do original
+            "-map", "0:v:0",  # Vídeo do usuário
+            "-map", "0:a:0",  # Áudio do usuário  
+            "-map_metadata", "1",  # Metadados do vídeo que funciona
+            
+            # Forçar o mesmo codec do original
+            "-c:v", "libx265",
+            "-tag:v", "hvc1",
+            "-preset", "fast",
+            "-crf", "23",  # Mesma qualidade do original
+            "-pix_fmt", "yuv420p",
+            
+            # Mesmo áudio do original
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "48000",
+            "-ac", "2",
+            
+            # Força mesmo formato
+            "-f", "mov",
+            
+            str(final_temp)
+        ]
         
-        str(temp_converted)
+        print(f"CLONING command: {' '.join(ffmpeg_cmd)}")
+        ffmpeg_proc = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        if ffmpeg_proc.returncode == 0:
+            print("CLONING successful! Replacing original...")
+            shutil.move(str(final_temp), str(video_path))
+            
+            # Limpar temporários
+            if temp_clone.exists():
+                temp_clone.unlink()
+            
+            print("CLONING completed successfully!")
+            return subprocess.CompletedProcess(args=ffmpeg_cmd, returncode=0, stdout="", stderr="")
+        else:
+            print(f"CLONING failed: {ffmpeg_proc.stderr}")
+            
+            # Limpar temporários
+            if temp_clone.exists():
+                temp_clone.unlink()
+            if final_temp.exists():
+                final_temp.unlink()
+            
+            # Fallback
+            return fallback_video_conversion(video_path)
+            
+    except Exception as e:
+        print(f"CLONING exception: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Limpar temporários
+        if temp_clone.exists():
+            temp_clone.unlink()
+        
+        return fallback_video_conversion(video_path)
+
+def fallback_video_conversion(video_path: Path) -> subprocess.CompletedProcess:
+    """Método de fallback se a clonagem falhar"""
+    print("Using fallback method: simple copy with basic metadata...")
+    
+    # Se tudo falhar, apenas copia e aplica metadados básicos
+    fallback_cmd = [
+        "exiftool", "-m", "-overwrite_original",
+        "-Keys:Copyright=Meta AI",
+        "-Keys:Model=2Q37S02H6H006X", 
+        "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
+        str(video_path)
     ]
     
-    print(f"EXACT format conversion command: {' '.join(ffmpeg_cmd)}")
-    ffmpeg_proc = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    
-    if ffmpeg_proc.returncode == 0:
-        print("EXACT format conversion successful!")
-        
-        # Substituir o arquivo original pelo convertido
-        import shutil
-        shutil.move(str(temp_converted), str(video_path))
-        
-        # Agora aplicar metadados adicionais que o ffmpeg não consegue
-        post_process_cmd = [
-            "exiftool", "-m", "-overwrite_original",
-            "-Keys:Model=2Q37S02H6H006X",  # Modelo específico que ffmpeg não suporta
-            f"-Keys:CreationDate={datetime.now().strftime('%Y:%m:%d %H:%M:%SZ')}",
-            str(video_path)
-        ]
-        
-        print(f"Post-processing metadata: {' '.join(post_process_cmd)}")
-        post_proc = subprocess.run(post_process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        print(f"Post-processing result: {post_proc.returncode}")
-        
-        if post_proc.stderr:
-            print(f"Post-processing stderr: {post_proc.stderr}")
-        
-        return post_proc
-    else:
-        print(f"EXACT format conversion failed: {ffmpeg_proc.stderr}")
-        
-        # Limpar arquivo temporário se houver
-        if temp_converted.exists():
-            temp_converted.unlink()
-        
-        # Fallback para método anterior (mesmo que não funcione perfeitamente)
-        print("Falling back to exiftool-only method...")
-        fallback_cmd = [
-            "exiftool", "-m", "-overwrite_original",
-            "-Keys:Copyright=Meta AI",
-            "-Keys:Model=2Q37S02H6H006X",
-            "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
-            str(video_path)
-        ]
-        
-        fallback_proc = subprocess.run(fallback_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        return fallback_proc
+    print(f"Fallback command: {' '.join(fallback_cmd)}")
+    fallback_proc = subprocess.run(fallback_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return fallback_proc
 
 def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
     """Aplica metadados específicos para vídeos da trend baseado no arquivo IMG_5975.MOV"""
