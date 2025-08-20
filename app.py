@@ -459,99 +459,25 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
     # Data atual formatada
     current_date = datetime.now().strftime('%Y:%m:%d %H:%M:%S')
     
-    # Aplicamos todos os metadados de uma vez para garantir compatibilidade
-    all_args = [
+    # Metadados essenciais para a trend
+    basic_args = [
         "exiftool", "-m", "-q", "-overwrite_original",
-        
-        # Metadados básicos da trend (extraídos do arquivo de exemplo)
         "-Copyright=Meta AI",
         "-Model=Ray-Ban Meta Smart Glasses",
-        
-        # Coordenadas GPS exatas da trend (extraídas do arquivo de exemplo)
+        f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
         "-GPSLatitude=15 deg 47' 26.16\" S",
         "-GPSLongitude=47 deg 53' 3.48\" W",
         "-GPSLatitudeRef=South",
         "-GPSLongitudeRef=West",
-        
-        # Metadados técnicos para vídeos (extraídos do arquivo de exemplo)
-        "-VideoFrameRate=30",
-        "-CompressorID=hvc1",
-        "-CompressorName='hvc1'",
-        "-HandlerType=Video Track",
-        "-HandlerVendorID=Apple",
-        "-HandlerDescription=Core Media Video",
-        
-        # Metadados de áudio (extraídos do arquivo de exemplo)
-        "-MediaLanguageCode=und",
-        "-AudioFormat=mp4a",
-        "-AudioChannels=2",
-        "-AudioBitsPerSample=16",
-        "-AudioSampleRate=48000",
-        
-        # Metadados de resolução (extraídos do arquivo de exemplo)
-        "-XResolution=72",
-        "-YResolution=72",
-        "-BitDepth=24",
-        
-        # Datas (usando valores atuais)
-        f"-CreateDate={current_date}",
-        f"-ModifyDate={current_date}",
-        f"-TrackCreateDate={current_date}",
-        f"-TrackModifyDate={current_date}",
-        f"-MediaCreateDate={current_date}",
-        f"-MediaModifyDate={current_date}",
-        f"-CreationDate={current_date}Z",
-        
-        # Comentário especial (extraído do arquivo de exemplo)
-        f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
-        
-        # Metadados específicos da trend
-        "-MajorBrand=Apple QuickTime (.MOV/QT)",
-        "-MinorVersion=0.0.0",
-        
-        # Aplica no arquivo
         str(video_path)
     ]
     
-    # Executa o comando exiftool com todos os metadados
-    all_proc = subprocess.run(all_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print(f"Video metadata application result: {all_proc.returncode}")
+    # Executar o comando com os metadados essenciais
+    basic_proc = subprocess.run(basic_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(f"Basic video metadata result: {basic_proc.returncode}")
     
-    # Se o primeiro comando falhou, tente uma abordagem alternativa
-    if all_proc.returncode != 0:
-        print(f"Error applying metadata: {all_proc.stderr}")
-        print("Trying alternative approach...")
-        
-        # Abordagem alternativa: aplicar metadados em etapas menores
-        basic_args = [
-            "exiftool", "-m", "-q", "-overwrite_original",
-            "-Copyright=Meta AI",
-            "-Model=Ray-Ban Meta Smart Glasses",
-            f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
-            str(video_path)
-        ]
-        
-        basic_proc = subprocess.run(basic_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        print(f"Basic metadata result: {basic_proc.returncode}")
-        
-        # Aplicar metadados GPS separadamente
-        gps_args = [
-            "exiftool", "-m", "-q", "-overwrite_original",
-            "-GPSLatitude=15 deg 47' 26.16\" S",
-            "-GPSLongitude=47 deg 53' 3.48\" W",
-            "-GPSLatitudeRef=South",
-            "-GPSLongitudeRef=West",
-            str(video_path)
-        ]
-        
-        gps_proc = subprocess.run(gps_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        print(f"GPS metadata result: {gps_proc.returncode}")
-        
-        # Retorna o resultado da abordagem alternativa
-        return basic_proc
-    
-    # Retorna o resultado do comando principal
-    return all_proc
+    # Retorna o resultado
+    return basic_proc
 
 @app.route('/mysql-status')
 def mysql_status():
@@ -913,26 +839,6 @@ def upload():
                     print("Video metadata missing, applying specialized video metadata...")
                     apply_video_metadata(processed_path, TREND_META)
                     print("Video metadata application completed")
-                    
-                    # Verificar novamente após aplicar os metadados
-                    verify_again = subprocess.run(
-                        ["exiftool", "-json", str(processed_path)], 
-                        stdout=subprocess.PIPE, 
-                        stderr=subprocess.PIPE, 
-                        text=True
-                    )
-                    
-                    if verify_again.returncode == 0:
-                        print("Video metadata verification after specialized application:")
-                        try:
-                            metadata_verify = json.loads(verify_again.stdout)
-                            if metadata_verify and isinstance(metadata_verify, list) and len(metadata_verify) > 0:
-                                metadata_verify = metadata_verify[0]
-                                print(f"Model: {metadata_verify.get('Model')}")
-                                print(f"Copyright: {metadata_verify.get('Copyright')}")
-                                print(f"Comment: {metadata_verify.get('Comment', '')[:30]}...")
-                        except:
-                            print("Error parsing verification metadata")
                 # If metadata is missing for images, try a more direct approach
                 elif not metadata_ok:
                     print("Critical metadata missing, trying direct approach...")

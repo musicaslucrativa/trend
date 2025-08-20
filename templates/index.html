@@ -1,249 +1,375 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Trend App - Potencialize seu alcance</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid #fcc;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+            margin-bottom: 25px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .media-preview {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .media-preview img,
+        .media-preview video {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .preview-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+
+        .admin-link {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .admin-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .container {
+                padding: 10px 0;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+
+            .card {
+                padding: 30px 20px;
+                border-radius: 15px;
+            }
+
+            .upload-area {
+                padding: 30px 15px;
+            }
+
+            .upload-icon {
+                font-size: 40px;
+            }
+
+            .upload-text {
+                font-size: 16px;
+            }
+
+            .btn {
+                padding: 16px;
+                font-size: 16px;
+            }
+
+            .admin-link {
+                top: 15px;
+                right: 15px;
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .header p {
+                font-size: 14px;
+            }
+
+            .card {
+                padding: 25px 15px;
+            }
+
+            .upload-area {
+                padding: 25px 10px;
+            }
+
+            .upload-icon {
+                font-size: 36px;
+            }
+
+            .upload-text {
+                font-size: 15px;
+            }
+
+            .btn {
+                padding: 14px;
+                font-size: 16px;
+            }
+        }
+
+        /* Estilo para o indicador de arquivo selecionado */
+        .file-selected {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #c3e6cb;
+            text-align: center;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <nav class="d-flex justify-content-between p-2">
-        <div></div>
-        {% if session.get('is_admin') %}
-            <a href="{{ url_for('admin') }}" class="btn btn-sm">
-                <i class="fas fa-user-shield mr-1"></i> Admin
-            </a>
-        {% elif session.get('username') %}
-            <div class="d-flex gap-2">
-                <span class="badge badge-primary p-1">
-                    <i class="fas fa-user mr-1"></i> {{ session.get('username') }}
-                </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm">
-                    <i class="fas fa-sign-out-alt mr-1"></i> Sair
-                </a>
-            </div>
-        {% else %}
-            <a href="{{ url_for('login') }}" class="btn btn-sm">
-                <i class="fas fa-sign-in-alt mr-1"></i> Login
-            </a>
-        {% endif %}
-    </nav>
-
-    <header class="header slide-up">
-        <h1>Entre na trend e potencialize seu alcance em até 10x</h1>
-        <p>Envie sua foto ou vídeo e receba o arquivo pronto para postar.</p>
-    </header>
+    {% if session.get('is_admin') %}
+        <a href="{{ url_for('admin') }}" class="admin-link">Admin</a>
+    {% endif %}
 
     <div class="container">
-        <div class="card fade-in">
+        <div class="header">
+            <h1>Entre na trend e potencialize seu alcance em até 10x</h1>
+            <p>Envie sua foto ou vídeo e receba o arquivo pronto para postar.</p>
+        </div>
+
+        <div class="card">
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="alert alert-error mb-3">
-                            <i class="fas fa-exclamation-circle mr-1"></i> {{ message }}
-                        </div>
+                        <div class="alert">{{ message }}</div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
 
-            <div class="card-header">
-                <h2><i class="fas fa-cloud-upload-alt text-primary mr-1"></i> Upload de Mídia</h2>
-            </div>
-
-            <div class="card-body">
-                <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" id="uploadForm">
-                    <div class="upload-area" id="uploadArea">
-                        <div class="upload-icon">
-                            <i class="fas fa-camera text-primary"></i>
-                            <i class="fas fa-video text-primary ml-2"></i>
-                        </div>
-                        <div class="upload-text">Toque ou arraste para escolher uma foto ou vídeo</div>
-                        <div class="upload-hint">JPG, PNG, HEIC, MP4, MOV, AVI, 3GP, MKV - até 16MB</div>
-                        <input type="file" name="image" id="fileInput" class="file-input" accept="image/*,video/*" required>
-                    </div>
-
-                    <div class="media-preview" id="mediaPreview">
-                        <div id="imageContainer" style="display: none;">
-                            <img id="previewImg" src="" alt="Preview" style="max-width: 100%; height: auto;">
-                        </div>
-                        <div id="videoContainer" style="display: none;">
-                            <video id="previewVideo" controls playsinline webkit-playsinline 
-                                   style="max-width: 100%; max-height: 300px; width: 100%;">
-                                Seu navegador não suporta a tag de vídeo.
-                            </video>
-                        </div>
-                        <div class="preview-info" id="previewInfo"></div>
-                        <div class="preview-status mt-2" id="previewStatus" style="display: none;">
-                            <div class="badge badge-success">
-                                <i class="fas fa-check-circle mr-1"></i> Arquivo selecionado com sucesso
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group mt-3">
-                        <button type="submit" class="btn w-100" id="submitBtn" disabled>
-                            <i class="fas fa-magic mr-1"></i> Processar
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="card-footer">
-                <div class="d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="fas fa-info-circle text-primary mr-1"></i>
-                        <span class="text-light">Seu arquivo fica disponível para download em seguida.</span>
-                    </div>
-                    <div>
-                        <i class="fas fa-shield-alt text-primary mr-1"></i>
-                        <span class="text-light">Seus dados são processados com segurança.</span>
-                    </div>
+            <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📷 🎬</div>
+                    <div class="upload-text">Toque para escolher uma foto ou vídeo</div>
+                    <div class="upload-hint">JPG, PNG, HEIC, MP4, MOV - até 16MB</div>
+                    <input type="file" name="image" id="fileInput" class="file-input" accept="image/*,video/*" required>
                 </div>
+
+                <div class="file-selected" id="fileSelected">
+                    Arquivo selecionado com sucesso!
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn" disabled>Continuar</button>
+            </form>
+
+            <div class="footer">
+                Seu arquivo fica disponível para download em seguida.
             </div>
         </div>
     </div>
 
-    <footer class="footer">
-        <p>&copy; 2025 Trend App - Todos os direitos reservados</p>
-    </footer>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileInput = document.getElementById('fileInput');
-            const submitBtn = document.getElementById('submitBtn');
-            const mediaPreview = document.getElementById('mediaPreview');
-            const imageContainer = document.getElementById('imageContainer');
-            const videoContainer = document.getElementById('videoContainer');
-            const previewImg = document.getElementById('previewImg');
-            const previewVideo = document.getElementById('previewVideo');
-            const previewInfo = document.getElementById('previewInfo');
-            const uploadArea = document.getElementById('uploadArea');
-            
-            // Detecção de dispositivo móvel
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            console.log("Dispositivo móvel detectado:", isMobile);
-            
-            // Função para processar arquivo selecionado
-            function processSelectedFile(file) {
-                console.log("Processando arquivo:", file.name, file.type, file.size);
-                
-                // Enable submit button
-                submitBtn.disabled = false;
-                
-                // Update button text based on file type
-                const isVideo = file.type.startsWith('video/');
-                submitBtn.innerHTML = isVideo ? 
-                    '<i class="fas fa-magic mr-1"></i> Processar vídeo' : 
-                    '<i class="fas fa-magic mr-1"></i> Processar imagem';
-                
-                // Mostrar área de preview
-                mediaPreview.style.display = 'block';
-                
-                // Exibir informações do arquivo
-                const fileSize = (file.size / (1024 * 1024)).toFixed(2);
-                previewInfo.textContent = `${file.name} (${fileSize} MB)`;
-                
-                const previewStatus = document.getElementById('previewStatus');
-                
-                try {
-                    // Mostrar preview com base no tipo de arquivo
-                    if (isVideo) {
-                        console.log("Preparando preview de vídeo");
-                        videoContainer.style.display = 'block';
-                        imageContainer.style.display = 'none';
-                        
-                        const videoURL = URL.createObjectURL(file);
-                        console.log("URL do vídeo criada:", videoURL);
-                        previewVideo.src = videoURL;
-                        previewVideo.controls = true;
-                        
-                        // Em dispositivos móveis, pode ser necessário carregar manualmente
-                        if (isMobile) {
-                            previewVideo.load();
-                            
-                            // Adicionar eventos para verificar se o vídeo carregou
-                            previewVideo.addEventListener('loadedmetadata', function() {
-                                console.log("Vídeo carregado com sucesso (loadedmetadata)");
-                            });
-                            
-                            previewVideo.addEventListener('error', function(e) {
-                                console.error("Erro ao carregar vídeo:", e);
-                                showFallbackStatus();
-                            });
-                        }
-                    } else {
-                        console.log("Preparando preview de imagem");
-                        imageContainer.style.display = 'block';
-                        videoContainer.style.display = 'none';
-                        
-                        const imageURL = URL.createObjectURL(file);
-                        console.log("URL da imagem criada:", imageURL);
-                        previewImg.src = imageURL;
-                        
-                        // Adicionar eventos para verificar se a imagem carregou
-                        previewImg.addEventListener('load', function() {
-                            console.log("Imagem carregada com sucesso");
-                        });
-                        
-                        previewImg.addEventListener('error', function(e) {
-                            console.error("Erro ao carregar imagem:", e);
-                            showFallbackStatus();
-                        });
-                    }
-                    
-                    // Mostrar status de sucesso em dispositivos móveis de qualquer forma
-                    if (isMobile) {
-                        showFallbackStatus();
-                    }
-                    
-                } catch (error) {
-                    console.error("Erro ao criar preview:", error);
-                    showFallbackStatus();
-                }
-                
-                // Função para mostrar o status de fallback
-                function showFallbackStatus() {
-                    previewStatus.style.display = 'block';
-                    previewInfo.innerHTML = `<strong>${file.name}</strong> (${fileSize} MB)`;
-                }
-            }
-            
-            // File selection via input
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    processSelectedFile(file);
-                }
-            });
-            
-            // Clique na área de upload
-            uploadArea.addEventListener('click', function() {
-                fileInput.click();
-            });
-            
-            // Eventos de arrastar e soltar
-            uploadArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            
-            uploadArea.addEventListener('dragleave', function() {
-                uploadArea.classList.remove('dragover');
-            });
-            
-            uploadArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                
-                if (e.dataTransfer.files.length) {
-                    fileInput.files = e.dataTransfer.files;
-                    processSelectedFile(e.dataTransfer.files[0]);
-                }
-            });
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileSelected = document.getElementById('fileSelected');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Click to select file
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
         });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // File selection
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            // Check if file is image or video
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+            
+            if (!isImage && !isVideo) {
+                alert('Por favor, selecione apenas imagens ou vídeos.');
+                return;
+            }
+
+            // Show file selected indicator
+            fileSelected.style.display = 'block';
+            fileSelected.textContent = `Arquivo selecionado: ${file.name}`;
+            
+            // Update button text based on file type
+            submitBtn.textContent = isVideo ? 'Processar vídeo' : 'Processar imagem';
+            
+            // Enable submit button
+            submitBtn.disabled = false;
+        }
     </script>
 </body>
 </html>
