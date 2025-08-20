@@ -8,4 +8,5 @@ services:
     envVars:
       - key: SECRET_KEY
         generateValue: true
-    # Port is defined by Dockerfile (8000) via gunicorn
+      - key: PORT
+        value: 8000

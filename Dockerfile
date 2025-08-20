@@ -2,7 +2,8 @@
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-	PYTHONUNBUFFERED=1
+	PYTHONUNBUFFERED=1 \
+	PORT=8000
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends exiftool \
@@ -20,4 +21,4 @@ RUN mkdir -p /app/uploads /app/processed
 
 EXPOSE 8000
 
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "app:app"]
+CMD ["sh", "-c", "gunicorn -b 0.0.0.0:${PORT} app:app"]
