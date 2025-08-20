@@ -415,14 +415,49 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             print(f"Warning: Output file should be .mov, but got {dst.suffix}")
             # Continuamos mesmo assim, pois já ajustamos a extensão na função de upload
         
+        print(f"Processing video file: {src} -> {dst}")
+        
         # Copiar o arquivo primeiro
-        shutil.copy2(src, dst)
+        try:
+            shutil.copy2(src, dst)
+            print(f"Video file copied successfully: {dst}")
+            
+            # Verificar se o arquivo foi copiado corretamente
+            if not dst.exists():
+                print(f"ERROR: Failed to copy video file to {dst}")
+                return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="Failed to copy video file")
+            
+            # Verificar o tipo de arquivo copiado
+            file_type_proc = subprocess.run(
+                ["exiftool", "-s", "-s", "-s", "-FileType", str(dst)], 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                text=True
+            )
+            if file_type_proc.returncode == 0:
+                print(f"Copied video file type: {file_type_proc.stdout.strip()}")
+        except Exception as e:
+            print(f"Error copying video file: {e}")
+            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error copying video file: {e}")
         
         # Aplicar metadados específicos para vídeos
-        return apply_video_metadata(dst, meta)
+        try:
+            result = apply_video_metadata(dst, meta)
+            print(f"Video metadata application completed with return code: {result.returncode}")
+            return result
+        except Exception as e:
+            print(f"Error applying video metadata: {e}")
+            import traceback
+            traceback.print_exc()
+            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying video metadata: {e}")
     else:
         # Para imagens, copiamos o arquivo e aplicamos os metadados padrão
-        shutil.copy2(src, dst)
+        try:
+            shutil.copy2(src, dst)
+            print(f"Image file copied successfully: {dst}")
+        except Exception as e:
+            print(f"Error copying image file: {e}")
+            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error copying image file: {e}")
         
         # Para imagens, usamos a abordagem padrão
         args = ["exiftool", "-m", "-q", "-overwrite_original"]
@@ -457,7 +492,20 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
         args.append(str(dst))
         
         print(f"Applying image metadata with command: {' '.join(args)}")
-        return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print(f"Image metadata application completed with return code: {result.returncode}")
+            
+            # Verificar os metadados aplicados para imagens também
+            print("\nImage metadata verification:")
+            verify_metadata(dst)
+            
+            return result
+        except Exception as e:
+            print(f"Error applying image metadata: {e}")
+            import traceback
+            traceback.print_exc()
+            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying image metadata: {e}")
 
 def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
     """Aplica metadados específicos para vídeos da trend baseado no arquivo IMG_5975.MOV"""
@@ -479,8 +527,24 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
     file_type = file_type_proc.stdout.strip()
     print(f"File type: {file_type}")
     
+    # Metadados comuns para todos os vídeos
+    common_metadata = {
+        "Copyright": "Meta AI",
+        "Model": "Ray-Ban Meta Smart Glasses",
+        "Comment": f"app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
+        "GPSLatitude": "15 deg 47' 26.16\" S",
+        "GPSLongitude": "47 deg 53' 3.48\" W",
+        "GPSLatitudeRef": "South",
+        "GPSLongitudeRef": "West"
+    }
+    
+    print("Applying these metadata to video:")
+    for key, value in common_metadata.items():
+        print(f"  - {key}: {value}")
+    
     # Metadados específicos para o formato MOV (como o original)
     if file_type == "MOV":
+        print("Applying MOV-specific metadata")
         # Aplicar os metadados exatos do MOV original
         mov_args = [
             "exiftool", "-m", "-overwrite_original",
@@ -500,8 +564,11 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
             str(video_path)
         ]
         
+        print(f"MOV metadata command: {' '.join(mov_args)}")
         mov_proc = subprocess.run(mov_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         print(f"MOV metadata result: {mov_proc.returncode}")
+        if mov_proc.stderr:
+            print(f"MOV metadata stderr: {mov_proc.stderr}")
         
         # Se houve erro com o compressor, tente sem ele
         if mov_proc.returncode != 0 and "CompressorID" in mov_proc.stderr:
@@ -521,11 +588,18 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
                 str(video_path)
             ]
             
+            print(f"MOV metadata (without compressor) command: {' '.join(mov_args)}")
             mov_proc = subprocess.run(mov_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             print(f"MOV metadata (without compressor) result: {mov_proc.returncode}")
+            if mov_proc.stderr:
+                print(f"MOV metadata (without compressor) stderr: {mov_proc.stderr}")
+        
+        # Verificar os metadados aplicados
+        verify_metadata(video_path)
         
         return mov_proc
     else:
+        print(f"Applying generic metadata for {file_type} file")
         # Para outros formatos (MP4, etc.), aplicar metadados genéricos
         basic_args = [
             "exiftool", "-m", "-overwrite_original",
@@ -539,10 +613,42 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
             str(video_path)
         ]
         
+        print(f"Basic metadata command: {' '.join(basic_args)}")
         basic_proc = subprocess.run(basic_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         print(f"Basic video metadata result: {basic_proc.returncode}")
+        if basic_proc.stderr:
+            print(f"Basic video metadata stderr: {basic_proc.stderr}")
+        
+        # Verificar os metadados aplicados
+        verify_metadata(video_path)
         
         return basic_proc
+        
+def verify_metadata(file_path: Path) -> None:
+    """Verifica e exibe os metadados aplicados a um arquivo"""
+    print(f"\nVerifying metadata for {file_path}:")
+    
+    # Verificar metadados críticos
+    critical_fields = [
+        "Copyright", "Model", "Comment", 
+        "GPSLatitude", "GPSLongitude"
+    ]
+    
+    for field in critical_fields:
+        cmd = ["exiftool", "-s", "-s", "-s", f"-{field}", str(file_path)]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0 and result.stdout.strip():
+            print(f"  ✓ {field}: {result.stdout.strip()}")
+        else:
+            print(f"  ✗ {field}: Not found or empty")
+    
+    # Verificar tipo de arquivo e formato
+    file_type_cmd = ["exiftool", "-s", "-s", "-s", "-FileType", "-MajorBrand", "-FileTypeExtension", str(file_path)]
+    file_type_result = subprocess.run(file_type_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if file_type_result.returncode == 0:
+        print(f"  • File info: {file_type_result.stdout.strip()}")
+    
+    print("Metadata verification completed.\n")
 
 @app.route('/mysql-status')
 def mysql_status():
@@ -842,6 +948,16 @@ def upload():
         if is_video:
             # Para vídeos, sempre usar extensão .mov para compatibilidade com a trend
             processed_name = f"{upload_path.stem}-trend.mov"
+            
+            # Verificar se o vídeo é MOV ou MP4
+            file_type_proc = subprocess.run(
+                ["exiftool", "-s", "-s", "-s", "-FileType", str(upload_path)], 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                text=True
+            )
+            file_type = file_type_proc.stdout.strip()
+            print(f"Original video file type: {file_type}")
         else:
             processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
         processed_path = PROCESSED_DIR / processed_name
@@ -908,6 +1024,10 @@ def upload():
                     print("Video metadata missing, applying specialized video metadata...")
                     apply_video_metadata(processed_path, TREND_META)
                     print("Video metadata application completed")
+                    
+                    # Verificar novamente os metadados após a aplicação especializada
+                    print("\nFinal metadata verification after specialized application:")
+                    verify_metadata(processed_path)
                 # If metadata is missing for images, try a more direct approach
                 elif not metadata_ok:
                     print("Critical metadata missing, trying direct approach...")
