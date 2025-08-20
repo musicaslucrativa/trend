@@ -44,7 +44,7 @@ USERS = {
 # MySQL Configuration (only if available)
 if MYSQL_AVAILABLE:
     DB_CONFIG = {
-        'host': 'srv1330.hstgr.io',
+        'host': '45.151.120.6',
         'user': 'u733147707_trend',
         'password': '0EgZk/GkTb*',
         'database': 'u733147707_trend',
