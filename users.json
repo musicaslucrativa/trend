@@ -1,0 +1,7 @@
+{
+  "freitas": {
+    "password": "scrypt:32768:8:1$Tft2HDHUVPZozLAx$2668e6274673123bd31d37bfe6e144eb006f5ec77838b6d365670a16e27e8334a8e04ac1d167c623a29ec860432b06369ce9912c7fbfcbe511772106643dd042",
+    "created_at": "2025-08-20T12:30:00",
+    "created_by": "system"
+  }
+}
