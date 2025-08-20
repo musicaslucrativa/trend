@@ -163,6 +163,9 @@ def delete_user(username: str) -> bool:
 
 def verify_password(username: str, password: str) -> tuple[bool, bool]:
     """Verify user password and return (success, is_admin)"""
+    if not ensure_db_initialized():
+        return False, False
+        
     user = get_user(username)
     if user and check_password_hash(user['password_hash'], password):
         return True, user['is_admin']
@@ -309,14 +312,22 @@ def preserve_orientation(src: Path, dst: Path) -> subprocess.CompletedProcess:
 @app.route('/test-login')
 def test_login():
     try:
-        users = get_all_users()
-        return {
-            'status': 'ok',
-            'version': 'mysql',
-            'database_connected': True,
-            'total_users': len(users),
-            'users': [{'username': u['username'], 'is_admin': u['is_admin']} for u in users]
-        }
+        if ensure_db_initialized():
+            users = get_all_users()
+            return {
+                'status': 'ok',
+                'version': 'mysql',
+                'database_connected': True,
+                'total_users': len(users),
+                'users': [{'username': u['username'], 'is_admin': u['is_admin']} for u in users]
+            }
+        else:
+            return {
+                'status': 'ok',
+                'version': 'mysql',
+                'database_connected': False,
+                'message': 'Database not available'
+            }
     except Exception as e:
         return {'status': 'error', 'version': 'mysql', 'message': str(e)}
 
@@ -392,6 +403,10 @@ def logout():
 @admin_required
 
 def admin():
+	if not ensure_db_initialized():
+		flash('Banco de dados não disponível')
+		return redirect(url_for('index'))
+		
 	if request.method == 'POST':
 		action = request.form.get('action')
 		if action == 'create_user':
@@ -516,7 +531,7 @@ def too_large(error):
 
 
 def initialize_app():
-    """Initialize database and create admin user - called on first request"""
+    """Initialize database and create admin user - called lazily"""
     try:
         print("Initializing database...")
         init_database()
@@ -529,23 +544,25 @@ def initialize_app():
                 print("Failed to create admin user")
         else:
             print("Admin user already exists")
+        return True
             
     except Exception as e:
         print(f"Database initialization error: {e}")
+        return False
 
-# Flag to track if initialization was done
-_app_initialized = False
+# Flag to track if initialization was attempted
+_db_init_attempted = False
+_db_available = False
 
-@app.before_request
-def before_first_request():
-    global _app_initialized
-    if not _app_initialized:
-        try:
-            initialize_app()
-            _app_initialized = True
-        except Exception as e:
-            print(f"Failed to initialize app: {e}")
-            # Continue anyway - app will work with limited functionality
+def ensure_db_initialized():
+    """Ensure database is initialized, but don't fail if it's not available"""
+    global _db_init_attempted, _db_available
+    
+    if not _db_init_attempted:
+        _db_available = initialize_app()
+        _db_init_attempted = True
+    
+    return _db_available
 
 if __name__ == '__main__':
 	app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5173)), debug=True)
