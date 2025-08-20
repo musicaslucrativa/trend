@@ -432,17 +432,39 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
         f"-GPSLongitudeRef={meta.get('gps_longitude_ref', 'West')}"
     ])
     
-    # Metadados específicos para vídeo
+    # Metadados específicos para vídeo - aplicando TODOS os metadados da trend
     if is_video:
         args.extend([
+            # Metadados críticos para vídeos da trend
+            "-Make=Meta View",
+            "-Model=Ray-Ban Meta Smart Glasses",
+            "-Artist=Meta View",
+            "-Software=Ray-Ban Meta Smart Glasses",
+            "-By-line=Meta View",
+            "-Creator=Meta View",
+            "-Copyright=Meta View",
+            
+            # Metadados técnicos para vídeos
             "-VideoFrameRate=30",
             "-VideoCodec=H.264",
+            "-CompressorName=H.264",
+            "-VideoAvgBitrate=10000000",
+            
+            # Datas de criação
             f"-CreationDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
             f"-CreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
             f"-MediaCreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
             f"-TrackCreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
+            
+            # Metadados XMP
             "-XMP-dc:Creator=Meta View",
-            "-XMP-dc:Title=Ray-Ban Meta Smart Glasses"
+            "-XMP-dc:Title=Ray-Ban Meta Smart Glasses",
+            "-XMP-dc:Rights=Meta View",
+            
+            # Outros metadados importantes da trend
+            "-DeviceManufacturer=Meta View",
+            "-DeviceModelName=Ray-Ban Meta Smart Glasses",
+            "-DeviceSerialNumber=34D16852-7110-470A-8B25-D48E3A791E26"
         ])
     
     # Aplica no arquivo de destino
@@ -771,16 +793,64 @@ def upload():
             flash('Erro ao processar arquivo')
             return redirect(url_for('index'))
             
-        # Verify metadata was applied
+        # Verify metadata was applied and fix if needed
         try:
+            # First verification
             verify_proc = subprocess.run(
                 ["exiftool", "-json", str(processed_path)], 
                 stdout=subprocess.PIPE, 
                 stderr=subprocess.PIPE, 
                 text=True
             )
+            
             if verify_proc.returncode == 0:
                 print(f"Metadata verification: {verify_proc.stdout[:100]}...")
+                
+                # Check if critical metadata is missing
+                metadata_ok = False
+                try:
+                    import json
+                    metadata = json.loads(verify_proc.stdout)
+                    if metadata and isinstance(metadata, list) and len(metadata) > 0:
+                        metadata = metadata[0]
+                        # Check for critical metadata
+                        if is_video:
+                            metadata_ok = (
+                                metadata.get("Make") == "Meta View" and
+                                metadata.get("Model") == "Ray-Ban Meta Smart Glasses"
+                            )
+                        else:
+                            metadata_ok = (
+                                metadata.get("Make") == "Meta View" and
+                                metadata.get("Model") == "Ray-Ban Meta Smart Glasses" and
+                                metadata.get("GPSLatitude") is not None
+                            )
+                except:
+                    metadata_ok = False
+                
+                # If metadata is missing, try a more direct approach
+                if not metadata_ok:
+                    print("Critical metadata missing, trying direct approach...")
+                    # Direct approach for stubborn files
+                    direct_args = [
+                        "exiftool", "-overwrite_original",
+                        "-Make=Meta View",
+                        "-Model=Ray-Ban Meta Smart Glasses",
+                        "-GPSLatitude=22 deg 58' 46.24\" S",
+                        "-GPSLongitude=43 deg 24' 42.09\" W",
+                        "-GPSLatitudeRef=South",
+                        "-GPSLongitudeRef=West"
+                    ]
+                    
+                    if is_video:
+                        direct_args.extend([
+                            "-Artist=Meta View",
+                            "-Creator=Meta View"
+                        ])
+                        
+                    direct_args.append(str(processed_path))
+                    subprocess.run(direct_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    print("Direct metadata application completed")
         except Exception as e:
             print(f"Metadata verification error: {e}")
 
