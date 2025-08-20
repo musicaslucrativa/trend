@@ -526,86 +526,88 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying image metadata: {e}")
 
 def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-    """Aplica EXATAMENTE os metadados do IMG_5975.MOV que funciona na trend"""
-    print(f"Applying EXACT metadata from IMG_5975.MOV to video {video_path}")
+    """NOVA ESTRATÉGIA: Converter diretamente para o formato exato do IMG_5975.MOV"""
+    print(f"Converting video to EXACT format and metadata of IMG_5975.MOV: {video_path}")
     
-    # PRIMEIRO: Converter o vídeo para HEVC (hvc1) se não estiver neste formato
-    print("Step 1: Converting video to HEVC format like original...")
-    converted_path = video_path.with_suffix('.hevc_temp.mov')
+    # NOVA ABORDAGEM: Usar ffmpeg para recriar o vídeo com metadados embedados
+    print("Creating video with EXACT structure of working video...")
     
-    # Verificar o codec atual
-    codec_check = subprocess.run(
-        ["exiftool", "-s", "-s", "-s", "-CompressorID", str(video_path)],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    current_codec = codec_check.stdout.strip()
-    print(f"Current video codec: {current_codec}")
+    temp_converted = video_path.with_suffix('.exact_temp.mov')
     
-    if current_codec != "hvc1":
-        print("Converting to HEVC (hvc1) format...")
-        ffmpeg_cmd = [
-            "ffmpeg", "-y", "-i", str(video_path),
-            "-c:v", "libx265",
-            "-tag:v", "hvc1", 
-            "-preset", "fast",
-            "-crf", "20",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            str(converted_path)
-        ]
+    # Comando ffmpeg para criar vídeo EXATAMENTE como o IMG_5975.MOV
+    ffmpeg_cmd = [
+        "ffmpeg", "-y", "-i", str(video_path),
         
-        print(f"HEVC conversion command: {' '.join(ffmpeg_cmd)}")
-        ffmpeg_proc = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # Codec e formato EXATOS do vídeo original
+        "-c:v", "libx265",
+        "-tag:v", "hvc1",
+        "-preset", "fast", 
+        "-crf", "20",
+        "-pix_fmt", "yuv420p",
         
-        if ffmpeg_proc.returncode == 0:
-            print("HEVC conversion successful, replacing original...")
-            import shutil
-            shutil.move(str(converted_path), str(video_path))
-        else:
-            print(f"HEVC conversion failed: {ffmpeg_proc.stderr}")
-            if converted_path.exists():
-                converted_path.unlink()
-    else:
-        print("Video is already HEVC (hvc1) format")
-    
-    # SEGUNDO: Aplicar metadados EXATOS usando a sintaxe Keys:
-    print("Step 2: Applying exact metadata...")
-    exact_metadata_cmd = [
-        "exiftool", "-m", "-overwrite_original",
+        # Áudio igual ao original
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-ar", "48000",
+        "-ac", "2",
         
-        # Metadados EXATOS do IMG_5975.MOV
-        "-Keys:Copyright=Meta AI",
-        "-Keys:Model=2Q37S02H6H006X",  # MODELO EXATO do vídeo original
-        "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
-        "-Keys:GPSCoordinates=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
-        f"-Keys:CreationDate={datetime.now().strftime('%Y:%m:%d %H:%M:%SZ')}",
+        # Metadados EXATOS embedados durante a conversão
+        "-metadata", "copyright=Meta AI",
+        "-metadata", "comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
+        "-metadata", "location=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
         
-        # Metadados de QuickTime básicos
-        "-QuickTime:MajorBrand=Apple QuickTime (.MOV/QT)",
-        "-QuickTime:MinorVersion=0.0.0",
-        "-QuickTime:CompatibleBrands=qt",
+        # Força o formato MOV com estrutura Apple
+        "-f", "mov",
+        "-brand", "qt",
         
-        str(video_path)
+        str(temp_converted)
     ]
     
-    print("Applying EXACT metadata using Keys: syntax:")
-    print(f"Command: {' '.join(exact_metadata_cmd)}")
+    print(f"EXACT format conversion command: {' '.join(ffmpeg_cmd)}")
+    ffmpeg_proc = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
-    # Executar o comando com os metadados exatos
-    exact_proc = subprocess.run(exact_metadata_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print(f"Exact metadata result: {exact_proc.returncode}")
-    if exact_proc.stderr:
-        print(f"Exact metadata stderr: {exact_proc.stderr}")
-    
-    # TERCEIRO: Verificar se o codec ainda é hvc1 após aplicar metadados
-    verify_codec = subprocess.run(
-        ["exiftool", "-s", "-s", "-s", "-CompressorID", "-Model", str(video_path)],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    print(f"Final verification - Codec and Model: {verify_codec.stdout.strip()}")
-    
-    return exact_proc
+    if ffmpeg_proc.returncode == 0:
+        print("EXACT format conversion successful!")
+        
+        # Substituir o arquivo original pelo convertido
+        import shutil
+        shutil.move(str(temp_converted), str(video_path))
+        
+        # Agora aplicar metadados adicionais que o ffmpeg não consegue
+        post_process_cmd = [
+            "exiftool", "-m", "-overwrite_original",
+            "-Keys:Model=2Q37S02H6H006X",  # Modelo específico que ffmpeg não suporta
+            f"-Keys:CreationDate={datetime.now().strftime('%Y:%m:%d %H:%M:%SZ')}",
+            str(video_path)
+        ]
+        
+        print(f"Post-processing metadata: {' '.join(post_process_cmd)}")
+        post_proc = subprocess.run(post_process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Post-processing result: {post_proc.returncode}")
+        
+        if post_proc.stderr:
+            print(f"Post-processing stderr: {post_proc.stderr}")
+        
+        return post_proc
+    else:
+        print(f"EXACT format conversion failed: {ffmpeg_proc.stderr}")
+        
+        # Limpar arquivo temporário se houver
+        if temp_converted.exists():
+            temp_converted.unlink()
+        
+        # Fallback para método anterior (mesmo que não funcione perfeitamente)
+        print("Falling back to exiftool-only method...")
+        fallback_cmd = [
+            "exiftool", "-m", "-overwrite_original",
+            "-Keys:Copyright=Meta AI",
+            "-Keys:Model=2Q37S02H6H006X",
+            "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
+            str(video_path)
+        ]
+        
+        fallback_proc = subprocess.run(fallback_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return fallback_proc
 
 def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
     """Aplica metadados específicos para vídeos da trend baseado no arquivo IMG_5975.MOV"""
