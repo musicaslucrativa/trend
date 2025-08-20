@@ -526,56 +526,84 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying image metadata: {e}")
 
 def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-    """NOVA ESTRATÉGIA: Aplicar metadados IGUAL às imagens - preservar vídeo do usuário"""
-    print(f"Applying video metadata LIKE IMAGES: preserving user content in {video_path}")
+    """ESTRATÉGIA BASEADA NO PADRÃO DOS VÍDEOS QUE FUNCIONAM"""
+    print(f"Applying EXACT PATTERN from working videos to: {video_path}")
     
-    # AGORA vamos fazer IGUAL às imagens:
-    # 1. O vídeo do usuário JÁ foi copiado para video_path
-    # 2. Vamos aplicar APENAS os metadados essenciais
-    # 3. SEM modificar o conteúdo visual
+    # Com base na análise dos vídeos que FUNCIONAM (IMG_5975 e IMG_5982)
+    # vamos aplicar o padrão EXATO que faz a trend reconhecer
     
-    print("Step 1: Applying essential metadata to user's video (like images)...")
+    print("Step 1: Applying EXACT PATTERN metadata...")
     
     try:
-        # Aplicar APENAS os metadados essenciais que fazem a trend funcionar
-        # Usando a MESMA abordagem das imagens
-        essential_cmd = [
+        # Gerar um ID único no formato correto (UUID sem hífens)
+        import uuid
+        unique_id = str(uuid.uuid4()).upper()
+        
+        # Aplicar EXATAMENTE os metadados que fazem funcionar
+        pattern_cmd = [
             "exiftool", "-m", "-overwrite_original",
             
-            # Metadados MÍNIMOS mas ESSENCIAIS
+            # PADRÃO EXATO dos vídeos que funcionam
             "-Keys:Copyright=Meta AI",
-            "-Keys:Model=2Q37S02H6H006X",  # Modelo exato que funciona
-            "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
-            "-Keys:GPSCoordinates=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
+            "-Keys:Model=2Q37S02H6H006X",  # EXATO
+            f"-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={unique_id}",
             
-            # Data atual
+            # GPS variando levemente como nos vídeos que funcionam
+            "-Keys:GPSCoordinates=15 deg 47' 25.00\" S, 47 deg 53' 4.00\" W",
+            
+            # Data atual no formato correto
             f"-Keys:CreationDate={datetime.now().strftime('%Y:%m:%d %H:%M:%SZ')}",
+            
+            # CRITICAL: Tentar forçar estrutura MOV correta
+            "-QuickTime:MajorBrand=Apple QuickTime (.MOV/QT)",
+            "-QuickTime:MinorVersion=0.0.0", 
+            "-QuickTime:CompatibleBrands=qt",
+            "-QuickTime:TimeScale=48000",
+            
+            # Compressor correto
+            "-Track1:CompressorID=hvc1",
+            "-Track1:CompressorName='hvc1'",
             
             str(video_path)
         ]
         
-        print(f"Applying essential metadata: {' '.join(essential_cmd)}")
-        metadata_proc = subprocess.run(essential_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Applying EXACT PATTERN: {' '.join(pattern_cmd)}")
+        pattern_proc = subprocess.run(pattern_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
-        print(f"Metadata application result: {metadata_proc.returncode}")
-        if metadata_proc.stderr:
-            print(f"Metadata stderr: {metadata_proc.stderr}")
+        print(f"Pattern application result: {pattern_proc.returncode}")
+        if pattern_proc.stderr:
+            print(f"Pattern stderr: {pattern_proc.stderr}")
         
-        if metadata_proc.returncode == 0:
-            print("✅ SUCCESS: Metadata applied to user's video (like images)")
+        # Verificar se o MediaDataOffset está correto
+        offset_check = subprocess.run(
+            ["exiftool", "-s", "-s", "-s", "-MediaDataOffset", str(video_path)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        
+        if offset_check.returncode == 0:
+            offset_value = offset_check.stdout.strip()
+            print(f"MediaDataOffset check: {offset_value}")
+            
+            if offset_value == "36":
+                print("✅ PERFECT: MediaDataOffset = 36 (same as working videos)")
+            else:
+                print(f"⚠️  WARNING: MediaDataOffset = {offset_value} (working videos have 36)")
+        
+        if pattern_proc.returncode == 0:
+            print("✅ SUCCESS: EXACT PATTERN applied to user's video")
             
             # Verificar os metadados aplicados
-            verify_cmd = ["exiftool", "-s", "-s", "-s", "-Keys:Copyright", "-Keys:Model", str(video_path)]
+            verify_cmd = ["exiftool", "-s", "-s", "-s", "-Keys:Copyright", "-Keys:Model", "-Keys:Comment", str(video_path)]
             verify_result = subprocess.run(verify_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            print(f"Applied metadata verification: {verify_result.stdout.strip()}")
+            print(f"Applied pattern verification: {verify_result.stdout.strip()}")
             
-            return metadata_proc
+            return pattern_proc
         else:
-            print("❌ ERROR: Failed to apply metadata to user's video")
-            return metadata_proc
+            print("❌ ERROR: Failed to apply EXACT PATTERN to user's video")
+            return pattern_proc
             
     except Exception as e:
-        print(f"Exception applying video metadata: {e}")
+        print(f"Exception applying EXACT PATTERN: {e}")
         import traceback
         traceback.print_exc()
         return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Exception: {e}")
