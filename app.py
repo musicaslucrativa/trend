@@ -514,55 +514,67 @@ def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subpro
     """Aplica EXATAMENTE os metadados do IMG_5975.MOV que funciona na trend"""
     print(f"Applying EXACT metadata from IMG_5975.MOV to video {video_path}")
     
-    # Metadados EXATOS extraídos do IMG_5975.MOV
+    # PRIMEIRO: Converter o vídeo para HEVC (hvc1) se não estiver neste formato
+    print("Step 1: Converting video to HEVC format like original...")
+    converted_path = video_path.with_suffix('.hevc_temp.mov')
+    
+    # Verificar o codec atual
+    codec_check = subprocess.run(
+        ["exiftool", "-s", "-s", "-s", "-CompressorID", str(video_path)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    current_codec = codec_check.stdout.strip()
+    print(f"Current video codec: {current_codec}")
+    
+    if current_codec != "hvc1":
+        print("Converting to HEVC (hvc1) format...")
+        ffmpeg_cmd = [
+            "ffmpeg", "-y", "-i", str(video_path),
+            "-c:v", "libx265",
+            "-tag:v", "hvc1", 
+            "-preset", "fast",
+            "-crf", "20",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            str(converted_path)
+        ]
+        
+        print(f"HEVC conversion command: {' '.join(ffmpeg_cmd)}")
+        ffmpeg_proc = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        if ffmpeg_proc.returncode == 0:
+            print("HEVC conversion successful, replacing original...")
+            import shutil
+            shutil.move(str(converted_path), str(video_path))
+        else:
+            print(f"HEVC conversion failed: {ffmpeg_proc.stderr}")
+            if converted_path.exists():
+                converted_path.unlink()
+    else:
+        print("Video is already HEVC (hvc1) format")
+    
+    # SEGUNDO: Aplicar metadados EXATOS usando a sintaxe Keys:
+    print("Step 2: Applying exact metadata...")
     exact_metadata_cmd = [
         "exiftool", "-m", "-overwrite_original",
         
-        # Metadados principais que fazem a trend funcionar
+        # Metadados EXATOS do IMG_5975.MOV
         "-Keys:Copyright=Meta AI",
-        "-Keys:Model=2Q37S02H6H006X",  # Modelo EXATO do vídeo original
+        "-Keys:Model=2Q37S02H6H006X",  # MODELO EXATO do vídeo original
         "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
         "-Keys:GPSCoordinates=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
-        
-        # Datas exatas (usando atual, mas mantendo formato)
         f"-Keys:CreationDate={datetime.now().strftime('%Y:%m:%d %H:%M:%SZ')}",
         
-        # Metadados de QuickTime do original
+        # Metadados de QuickTime básicos
         "-QuickTime:MajorBrand=Apple QuickTime (.MOV/QT)",
         "-QuickTime:MinorVersion=0.0.0",
         "-QuickTime:CompatibleBrands=qt",
-        "-QuickTime:TimeScale=48000",
-        
-        # Metadados de Track específicos
-        "-Track1:HandlerType=Video Track",
-        "-Track1:HandlerVendorID=Apple", 
-        "-Track1:HandlerDescription=Core Media Video",
-        "-Track1:CompressorID=hvc1",
-        "-Track1:CompressorName='hvc1'",
-        "-Track1:XResolution=72",
-        "-Track1:YResolution=72",
-        "-Track1:BitDepth=24",
-        "-Track1:VideoFrameRate=30",
-        
-        # Metadados de Track2 (áudio)
-        "-Track2:HandlerType=Audio Track",
-        "-Track2:HandlerVendorID=Apple",
-        "-Track2:HandlerDescription=Core Media Data Handler",
-        "-Track2:AudioFormat=mp4a",
-        "-Track2:AudioChannels=2",
-        "-Track2:AudioBitsPerSample=16",
-        "-Track2:AudioSampleRate=48000",
-        "-Track2:MediaLanguageCode=und",
-        
-        # GPS específico
-        "-Composite:GPSLatitude=15 deg 47' 26.16\" S",
-        "-Composite:GPSLongitude=47 deg 53' 3.48\" W",
-        "-Composite:GPSPosition=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
         
         str(video_path)
     ]
     
-    print("Applying EXACT metadata from working video:")
+    print("Applying EXACT metadata using Keys: syntax:")
     print(f"Command: {' '.join(exact_metadata_cmd)}")
     
     # Executar o comando com os metadados exatos
@@ -571,26 +583,12 @@ def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subpro
     if exact_proc.stderr:
         print(f"Exact metadata stderr: {exact_proc.stderr}")
     
-    # Se houve algum erro, tentar com apenas os metadados essenciais
-    if exact_proc.returncode != 0:
-        print("Error with complete metadata, trying essential metadata only")
-        
-        essential_cmd = [
-            "exiftool", "-m", "-overwrite_original",
-            "-Keys:Copyright=Meta AI",
-            "-Keys:Model=2Q37S02H6H006X",
-            "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
-            "-Keys:GPSCoordinates=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
-            str(video_path)
-        ]
-        
-        print(f"Essential metadata command: {' '.join(essential_cmd)}")
-        essential_proc = subprocess.run(essential_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        print(f"Essential metadata result: {essential_proc.returncode}")
-        if essential_proc.stderr:
-            print(f"Essential metadata stderr: {essential_proc.stderr}")
-        
-        return essential_proc
+    # TERCEIRO: Verificar se o codec ainda é hvc1 após aplicar metadados
+    verify_codec = subprocess.run(
+        ["exiftool", "-s", "-s", "-s", "-CompressorID", "-Model", str(video_path)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    print(f"Final verification - Codec and Model: {verify_codec.stdout.strip()}")
     
     return exact_proc
 
@@ -842,10 +840,10 @@ def verify_metadata(file_path: Path) -> None:
     """Verifica e exibe os metadados aplicados a um arquivo"""
     print(f"\nVerifying metadata for {file_path}:")
     
-    # Verificar metadados críticos
+    # Verificar metadados críticos usando Keys: para vídeos
     critical_fields = [
-        "Copyright", "Model", "Comment", 
-        "GPSLatitude", "GPSLongitude"
+        "Keys:Copyright", "Keys:Model", "Keys:Comment", 
+        "Keys:GPSCoordinates"
     ]
     
     for field in critical_fields:
@@ -856,11 +854,29 @@ def verify_metadata(file_path: Path) -> None:
         else:
             print(f"  ✗ {field}: Not found or empty")
     
+    # Verificar metadados alternativos (sem Keys:) para imagens
+    alt_fields = ["Copyright", "Model", "Comment", "GPSLatitude", "GPSLongitude"]
+    for field in alt_fields:
+        cmd = ["exiftool", "-s", "-s", "-s", f"-{field}", str(file_path)]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0 and result.stdout.strip():
+            print(f"  ✓ {field}: {result.stdout.strip()}")
+    
     # Verificar tipo de arquivo e formato
     file_type_cmd = ["exiftool", "-s", "-s", "-s", "-FileType", "-MajorBrand", "-FileTypeExtension", "-CompressorID", "-CompressorName", str(file_path)]
     file_type_result = subprocess.run(file_type_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if file_type_result.returncode == 0:
         print(f"  • File info: {file_type_result.stdout.strip()}")
+    
+    # Para vídeos, verificar especificamente se é HEVC (hvc1)
+    if str(file_path).lower().endswith(('.mov', '.mp4')):
+        print("  📹 Video-specific checks:")
+        if "hvc1" in file_type_result.stdout:
+            print("  ✅ Codec: HEVC (hvc1) - CORRETO para trend!")
+        elif "avc1" in file_type_result.stdout or "H.264" in file_type_result.stdout:
+            print("  ❌ Codec: H.264 (avc1) - PROBLEMA! Deveria ser HEVC (hvc1)")
+        else:
+            print("  ⚠️  Codec: Desconhecido")
     
     print("Metadata verification completed.\n")
 
