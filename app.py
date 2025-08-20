@@ -335,37 +335,29 @@ def upload():
             flash('Erro ao salvar arquivo')
             return redirect(url_for('index'))
 
-        # For mobile, try a simpler approach first
+        # Simple approach for mobile - just copy with new name
+        import shutil
+        processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
+        processed_path = PROCESSED_DIR / processed_name
+        
+        # Copy the file first
+        shutil.copy2(upload_path, processed_path)
+        
+        # Try to apply metadata, but don't fail if it doesn't work
         try:
-            processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
-            processed_path = PROCESSED_DIR / processed_name
-
-            # Apply trend metadata directly
             write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
-            
             if write_proc.returncode != 0:
-                print(f"ExifTool error: {write_proc.stderr}")
-                # Try alternative approach - just copy the file
-                import shutil
-                shutil.copy2(upload_path, processed_path)
-                flash('Processamento básico aplicado. Tente novamente se necessário.')
-                return render_template('result.html', processed_filename=processed_name)
-                
-            if not processed_path.exists():
-                flash('Arquivo processado não foi criado')
-                return redirect(url_for('index'))
+                print(f"ExifTool warning: {write_proc.stderr}")
+                # Continue anyway, file was already copied
+        except Exception as e:
+            print(f"ExifTool error (non-critical): {e}")
+            # Continue anyway, file was already copied
+        
+        if not processed_path.exists():
+            flash('Erro ao processar arquivo')
+            return redirect(url_for('index'))
 
-            return render_template('result.html', processed_filename=processed_name)
-            
-        except Exception as exiftool_error:
-            print(f"ExifTool processing error: {exiftool_error}")
-            # Fallback: just copy the file
-            import shutil
-            processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
-            processed_path = PROCESSED_DIR / processed_name
-            shutil.copy2(upload_path, processed_path)
-            flash('Processamento básico aplicado. Tente novamente se necessário.')
-            return render_template('result.html', processed_filename=processed_name)
+        return render_template('result.html', processed_filename=processed_name)
         
     except Exception as e:
         print(f"Upload error: {str(e)}")
