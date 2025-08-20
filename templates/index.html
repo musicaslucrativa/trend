@@ -66,12 +66,20 @@
 
                     <div class="media-preview" id="mediaPreview">
                         <div id="imageContainer" style="display: none;">
-                            <img id="previewImg" src="" alt="Preview">
+                            <img id="previewImg" src="" alt="Preview" style="max-width: 100%; height: auto;">
                         </div>
                         <div id="videoContainer" style="display: none;">
-                            <video id="previewVideo" controls style="max-width: 100%; max-height: 300px;"></video>
+                            <video id="previewVideo" controls playsinline webkit-playsinline 
+                                   style="max-width: 100%; max-height: 300px; width: 100%;">
+                                Seu navegador não suporta a tag de vídeo.
+                            </video>
                         </div>
                         <div class="preview-info" id="previewInfo"></div>
+                        <div class="preview-status mt-2" id="previewStatus" style="display: none;">
+                            <div class="badge badge-success">
+                                <i class="fas fa-check-circle mr-1"></i> Arquivo selecionado com sucesso
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group mt-3">
@@ -112,43 +120,127 @@
             const previewImg = document.getElementById('previewImg');
             const previewVideo = document.getElementById('previewVideo');
             const previewInfo = document.getElementById('previewInfo');
+            const uploadArea = document.getElementById('uploadArea');
             
-            // File selection
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    
-                    // Enable submit button
-                    submitBtn.disabled = false;
-                    
-                    // Update button text based on file type
-                    const isVideo = file.type.startsWith('video/');
-                    submitBtn.innerHTML = isVideo ? 
-                        '<i class="fas fa-magic mr-1"></i> Processar vídeo' : 
-                        '<i class="fas fa-magic mr-1"></i> Processar imagem';
-                    
-                    // Mostrar área de preview
-                    mediaPreview.style.display = 'block';
-                    
-                    // Exibir informações do arquivo
-                    const fileSize = (file.size / (1024 * 1024)).toFixed(2);
-                    previewInfo.textContent = `${file.name} (${fileSize} MB)`;
-                    
+            // Detecção de dispositivo móvel
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            console.log("Dispositivo móvel detectado:", isMobile);
+            
+            // Função para processar arquivo selecionado
+            function processSelectedFile(file) {
+                console.log("Processando arquivo:", file.name, file.type, file.size);
+                
+                // Enable submit button
+                submitBtn.disabled = false;
+                
+                // Update button text based on file type
+                const isVideo = file.type.startsWith('video/');
+                submitBtn.innerHTML = isVideo ? 
+                    '<i class="fas fa-magic mr-1"></i> Processar vídeo' : 
+                    '<i class="fas fa-magic mr-1"></i> Processar imagem';
+                
+                // Mostrar área de preview
+                mediaPreview.style.display = 'block';
+                
+                // Exibir informações do arquivo
+                const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                previewInfo.textContent = `${file.name} (${fileSize} MB)`;
+                
+                const previewStatus = document.getElementById('previewStatus');
+                
+                try {
                     // Mostrar preview com base no tipo de arquivo
                     if (isVideo) {
+                        console.log("Preparando preview de vídeo");
                         videoContainer.style.display = 'block';
                         imageContainer.style.display = 'none';
                         
                         const videoURL = URL.createObjectURL(file);
+                        console.log("URL do vídeo criada:", videoURL);
                         previewVideo.src = videoURL;
                         previewVideo.controls = true;
+                        
+                        // Em dispositivos móveis, pode ser necessário carregar manualmente
+                        if (isMobile) {
+                            previewVideo.load();
+                            
+                            // Adicionar eventos para verificar se o vídeo carregou
+                            previewVideo.addEventListener('loadedmetadata', function() {
+                                console.log("Vídeo carregado com sucesso (loadedmetadata)");
+                            });
+                            
+                            previewVideo.addEventListener('error', function(e) {
+                                console.error("Erro ao carregar vídeo:", e);
+                                showFallbackStatus();
+                            });
+                        }
                     } else {
+                        console.log("Preparando preview de imagem");
                         imageContainer.style.display = 'block';
                         videoContainer.style.display = 'none';
                         
                         const imageURL = URL.createObjectURL(file);
+                        console.log("URL da imagem criada:", imageURL);
                         previewImg.src = imageURL;
+                        
+                        // Adicionar eventos para verificar se a imagem carregou
+                        previewImg.addEventListener('load', function() {
+                            console.log("Imagem carregada com sucesso");
+                        });
+                        
+                        previewImg.addEventListener('error', function(e) {
+                            console.error("Erro ao carregar imagem:", e);
+                            showFallbackStatus();
+                        });
                     }
+                    
+                    // Mostrar status de sucesso em dispositivos móveis de qualquer forma
+                    if (isMobile) {
+                        showFallbackStatus();
+                    }
+                    
+                } catch (error) {
+                    console.error("Erro ao criar preview:", error);
+                    showFallbackStatus();
+                }
+                
+                // Função para mostrar o status de fallback
+                function showFallbackStatus() {
+                    previewStatus.style.display = 'block';
+                    previewInfo.innerHTML = `<strong>${file.name}</strong> (${fileSize} MB)`;
+                }
+            }
+            
+            // File selection via input
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    processSelectedFile(file);
+                }
+            });
+            
+            // Clique na área de upload
+            uploadArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // Eventos de arrastar e soltar
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    processSelectedFile(e.dataTransfer.files[0]);
                 }
             });
         });
