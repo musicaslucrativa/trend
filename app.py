@@ -181,8 +181,12 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any]) -> subprocess
 
 
 def preserve_orientation(src: Path, dst: Path) -> subprocess.CompletedProcess:
-	# Copy original orientation to preserve it
-	args = ["exiftool", "-m", "-q", "-S", "-Orientation<Orientation", "-o", str(dst), str(src)]
+	# First copy the file
+	import shutil
+	shutil.copy2(src, dst)
+	
+	# Then preserve orientation if possible
+	args = ["exiftool", "-m", "-q", "-S", "-Orientation<Orientation", str(dst)]
 	return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
@@ -275,7 +279,6 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 @login_required
-
 def upload():
 	if 'image' not in request.files:
 		flash('Selecione uma imagem')
@@ -289,19 +292,34 @@ def upload():
 	filename = secure_filename(file.filename)
 	upload_path = UPLOAD_DIR / filename
 	file.save(str(upload_path))
+	
+	print(f"DEBUG: Arquivo salvo em {upload_path}")
 
 	processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
 	processed_path = PROCESSED_DIR / processed_name
+	
+	print(f"DEBUG: Caminho processado será {processed_path}")
 
 	# First preserve orientation
-	preserve_orientation(upload_path, processed_path)
+	print("DEBUG: Preservando orientação...")
+	preserve_result = preserve_orientation(upload_path, processed_path)
+	print(f"DEBUG: Resultado preserve_orientation: {preserve_result.returncode}")
+	if preserve_result.stderr:
+		print(f"DEBUG: Erro preserve_orientation: {preserve_result.stderr}")
 	
 	# Then apply trend metadata
+	print("DEBUG: Aplicando metadados da trend...")
 	write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
+	print(f"DEBUG: Resultado run_exiftool_write: {write_proc.returncode}")
+	if write_proc.stderr:
+		print(f"DEBUG: Erro run_exiftool_write: {write_proc.stderr}")
+	
 	if write_proc.returncode != 0 or not processed_path.exists():
+		print(f"DEBUG: Arquivo processado existe? {processed_path.exists()}")
 		flash('Houve um imprevisto. Tente outra imagem.')
 		return redirect(url_for('index'))
 
+	print(f"DEBUG: Sucesso! Arquivo processado: {processed_path}")
 	return render_template('result.html', processed_filename=processed_name)
 
 
