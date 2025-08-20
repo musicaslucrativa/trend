@@ -37,6 +37,9 @@ elif _password_plain_env:
 else:
 	APP_PASSWORD_HASH = generate_password_hash('admin123')  # default for dev
 
+# Admin users list
+ADMIN_USERS = {APP_USER, 'freitas'}
+
 
 def load_users() -> Dict[str, Dict[str, Any]]:
 	if USERS_FILE.exists():
@@ -61,7 +64,7 @@ def login_required(fn: Callable) -> Callable:
 
 def admin_required(fn: Callable) -> Callable:
 	def wrapper(*args, **kwargs):
-		if not session.get('auth') or session.get('username') != APP_USER:
+		if not session.get('auth') or session.get('username') not in ADMIN_USERS:
 			flash('Acesso negado')
 			return redirect(url_for('index'))
 		return fn(*args, **kwargs)
@@ -203,7 +206,7 @@ def login():
 		if username in users and check_password_hash(users[username]['password'], password):
 			session['auth'] = True
 			session['username'] = username
-			session['is_admin'] = False
+			session['is_admin'] = username in ADMIN_USERS
 			next_url = request.args.get('next') or url_for('index')
 			return redirect(next_url)
 		
@@ -248,8 +251,8 @@ def admin():
 		
 		elif action == 'delete_user':
 			username = request.form.get('username', '').strip()
-			if username == APP_USER:
-				flash('Não é possível deletar o admin')
+			if username in ADMIN_USERS:
+				flash('Não é possível deletar um admin')
 				return redirect(url_for('admin'))
 			
 			users = load_users()
