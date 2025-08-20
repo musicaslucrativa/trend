@@ -42,15 +42,27 @@ ADMIN_USERS = {APP_USER, 'freitas'}
 
 
 def load_users() -> Dict[str, Dict[str, Any]]:
-	if USERS_FILE.exists():
-		with open(USERS_FILE, 'r') as f:
-			return json.load(f)
-	return {}
+    try:
+        if USERS_FILE.exists():
+            with open(USERS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            # Create empty users file if it doesn't exist
+            print(f"Users file not found, creating: {USERS_FILE}")
+            save_users({})
+            return {}
+    except Exception as e:
+        print(f"Error loading users: {e}")
+        return {}
 
 
 def save_users(users: Dict[str, Dict[str, Any]]) -> None:
-	with open(USERS_FILE, 'w') as f:
-		json.dump(users, f, indent=2)
+    try:
+        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(users, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving users: {e}")
+        raise
 
 
 def login_required(fn: Callable) -> Callable:
@@ -190,6 +202,22 @@ def preserve_orientation(src: Path, dst: Path) -> subprocess.CompletedProcess:
 	return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
+@app.route('/test-login')
+def test_login():
+    try:
+        users = load_users()
+        return {
+            'status': 'ok',
+            'admin_user': APP_USER,
+            'admin_users_list': list(ADMIN_USERS),
+            'regular_users': list(users.keys()),
+            'users_file_exists': USERS_FILE.exists(),
+            'users_file_path': str(USERS_FILE)
+        }
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
+
+
 @app.route('/health')
 def health_check():
     try:
@@ -213,31 +241,73 @@ def health_check():
 
 
 @app.route('/login', methods=['GET', 'POST'])
-
 def login():
-	if request.method == 'POST':
-		username = request.form.get('username', '')
-		password = request.form.get('password', '')
-		
-		# Check admin first
-		if username == APP_USER and check_password_hash(APP_PASSWORD_HASH, password):
-			session['auth'] = True
-			session['username'] = username
-			session['is_admin'] = True
-			next_url = request.args.get('next') or url_for('index')
-			return redirect(next_url)
-		
-		# Check regular users
-		users = load_users()
-		if username in users and check_password_hash(users[username]['password'], password):
-			session['auth'] = True
-			session['username'] = username
-			session['is_admin'] = username in ADMIN_USERS
-			next_url = request.args.get('next') or url_for('index')
-			return redirect(next_url)
-		
-		flash('Credenciais inválidas')
-	return render_template('login.html')
+    try:
+        if request.method == 'POST':
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            
+            print(f"Login attempt for user: {username}")
+            
+            if not username or not password:
+                flash('Usuário e senha são obrigatórios')
+                return redirect(url_for('login'))
+            
+            # Check admin first
+            if username == APP_USER:
+                print(f"Checking admin user: {APP_USER}")
+                if check_password_hash(APP_PASSWORD_HASH, password):
+                    session['auth'] = True
+                    session['username'] = username
+                    session['is_admin'] = True
+                    print(f"Admin login successful: {username}")
+                    next_url = request.args.get('next') or url_for('index')
+                    return redirect(next_url)
+                else:
+                    print(f"Admin password incorrect for: {username}")
+            
+            # Check regular users
+            try:
+                users = load_users()
+                print(f"Loaded users: {list(users.keys())}")
+                
+                if username in users:
+                    print(f"Checking regular user: {username}")
+                    user_data = users[username]
+                    
+                    if 'password' not in user_data:
+                        print(f"No password field for user: {username}")
+                        flash('Erro na configuração do usuário')
+                        return redirect(url_for('login'))
+                    
+                    if check_password_hash(user_data['password'], password):
+                        session['auth'] = True
+                        session['username'] = username
+                        session['is_admin'] = username in ADMIN_USERS
+                        print(f"Regular user login successful: {username}, admin: {username in ADMIN_USERS}")
+                        next_url = request.args.get('next') or url_for('index')
+                        return redirect(next_url)
+                    else:
+                        print(f"Regular user password incorrect for: {username}")
+                else:
+                    print(f"User not found: {username}")
+                    
+            except Exception as user_error:
+                print(f"Error loading users: {user_error}")
+                flash('Erro ao carregar usuários')
+                return redirect(url_for('login'))
+            
+            flash('Credenciais inválidas')
+            return redirect(url_for('login'))
+            
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash('Erro interno no login. Tente novamente.')
+        return redirect(url_for('login'))
+    
+    return render_template('login.html')
 
 
 @app.route('/logout')
