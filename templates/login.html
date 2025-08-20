@@ -1,42 +1,181 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-	<title>Entrar</title>
-	<style>
-		:root { --bg:#0f172a; --card:#0b1224; --muted:#94a3b8; --text:#e2e8f0; --accent:#7c3aed; --accent2:#06b6d4; }
-		html,body { height: 100%; }
-		body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background: linear-gradient(135deg, #0f172a 0%, #111827 50%, #0b1224 100%); color: var(--text); display: grid; place-items: center; padding: 16px; }
-		.container { width: 100%; max-width: 420px; }
-		.card { background: radial-gradient(1200px 500px at 20% -10%, rgba(124,58,237,.20), transparent), radial-gradient(1200px 600px at 120% 10%, rgba(6,182,212,.18), transparent), var(--card); border: 1px solid rgba(148,163,184,.15); border-radius: 16px; padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-		h1 { margin: 0 0 8px; font-size: 26px; letter-spacing: -0.02em; }
-		p { margin: 0 0 14px; color: var(--muted); }
-		label { display: block; font-weight: 600; color: #cbd5e1; margin: 12px 0 6px; }
-		input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(148,163,184,.25); background: rgba(15, 23, 42, .6); color: var(--text); }
-		button { margin-top: 16px; width: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; padding: 12px 18px; border: 0; border-radius: 12px; cursor: pointer; font-weight: 700; }
-		button:hover { filter: brightness(1.05); }
-		.alert { color: #fecaca; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
-	</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Login - Trend App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .alert {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #fcc;
+            font-size: 14px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+
+            .container {
+                padding: 30px 20px;
+                border-radius: 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .header p {
+                font-size: 14px;
+            }
+
+            .form-group input {
+                padding: 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .btn {
+                padding: 12px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .container {
+                padding: 25px 15px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
 </head>
 <body>
-	<div class="container">
-		<div class="card">
-			<h1>Entrar</h1>
-			<p>Acesse a ferramenta da trend e potencialize seu alcance em até 10×.</p>
-			{% with messages = get_flashed_messages() %}
-				{% if messages %}
-					<div class="alert">{{ messages[0] }}</div>
-				{% endif %}
-			{% endwith %}
-			<form method="post" action="{{ url_for('login') }}">
-				<label for="username">Usuário</label>
-				<input id="username" name="username" autocomplete="username" required />
-				<label for="password">Senha</label>
-				<input id="password" name="password" type="password" autocomplete="current-password" required />
-				<button type="submit">Entrar</button>
-			</form>
-		</div>
-	</div>
+    <div class="container">
+        <div class="header">
+            <h1>Trend App</h1>
+            <p>Entre na trend e potencialize seu alcance</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Usuário</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn">Entrar</button>
+        </form>
+    </div>
 </body>
 </html>

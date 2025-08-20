@@ -292,34 +292,16 @@ def upload():
 	filename = secure_filename(file.filename)
 	upload_path = UPLOAD_DIR / filename
 	file.save(str(upload_path))
-	
-	print(f"DEBUG: Arquivo salvo em {upload_path}")
 
 	processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
 	processed_path = PROCESSED_DIR / processed_name
-	
-	print(f"DEBUG: Caminho processado será {processed_path}")
 
-	# First preserve orientation
-	print("DEBUG: Preservando orientação...")
-	preserve_result = preserve_orientation(upload_path, processed_path)
-	print(f"DEBUG: Resultado preserve_orientation: {preserve_result.returncode}")
-	if preserve_result.stderr:
-		print(f"DEBUG: Erro preserve_orientation: {preserve_result.stderr}")
-	
-	# Then apply trend metadata
-	print("DEBUG: Aplicando metadados da trend...")
+	# Apply trend metadata directly
 	write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
-	print(f"DEBUG: Resultado run_exiftool_write: {write_proc.returncode}")
-	if write_proc.stderr:
-		print(f"DEBUG: Erro run_exiftool_write: {write_proc.stderr}")
-	
 	if write_proc.returncode != 0 or not processed_path.exists():
-		print(f"DEBUG: Arquivo processado existe? {processed_path.exists()}")
 		flash('Houve um imprevisto. Tente outra imagem.')
 		return redirect(url_for('index'))
 
-	print(f"DEBUG: Sucesso! Arquivo processado: {processed_path}")
 	return render_template('result.html', processed_filename=processed_name)
 
 
