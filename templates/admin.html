@@ -1,353 +1,214 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Admin - Gerenciar Usuários</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px 0;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            color: white;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .header p {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .card h3 {
-            margin-bottom: 20px;
-            font-size: 20px;
-            color: #444;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-
-        .form-group input:focus {
-            border-color: #667eea;
-            outline: none;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-top: 15px;
-        }
-
-        .checkbox-group input {
-            width: auto;
-            margin-right: 10px;
-        }
-
-        .checkbox-group label {
-            margin-bottom: 0;
-            font-size: 14px;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            margin-right: 10px;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-        }
-
-        .btn-success {
-            background: #28a745;
-        }
-
-        .btn-sm {
-            padding: 8px 12px;
-            font-size: 12px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        table th, table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
-        table th {
-            font-weight: 600;
-            color: #555;
-            background: #f8f9fa;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .badge-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-
-        .status-connected {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-disconnected {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-        }
-
-        .flash-messages {
-            margin-bottom: 20px;
-        }
-
-        .flash-message {
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .flash-message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-            
-            table th, table td {
-                padding: 8px;
-                font-size: 14px;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .btn-sm {
-                margin-bottom: 5px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <header class="header slide-up">
+        <h1>Painel de Administração</h1>
+        <p>Gerenciamento de usuários e configurações do sistema</p>
+    </header>
+
     <div class="container">
-        <div class="header">
-            <h1>Painel de Administração</h1>
-            <p>Gerenciar usuários do sistema</p>
-        </div>
-
-        <div class="card">
-            {% if mysql_status == "Conectado" %}
-                <div class="status-indicator status-connected">MySQL: {{ mysql_status }}</div>
-            {% else %}
-                <div class="status-indicator status-disconnected">MySQL: {{ mysql_status }}</div>
-            {% endif %}
-
-            <div class="flash-messages">
-                {% with messages = get_flashed_messages() %}
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="flash-message">{{ message }}</div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
+        <div class="dashboard-header mb-4">
+            <div class="dashboard-title">
+                <i class="fas fa-tachometer-alt mr-1"></i> Dashboard
             </div>
-
-            <h3>Criar Novo Usuário</h3>
-            <form method="post" action="{{ url_for('admin') }}">
-                <input type="hidden" name="action" value="create_user">
-                <div class="form-group">
-                    <label for="username">Usuário</label>
-                    <input id="username" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Senha</label>
-                    <input id="password" name="password" type="password" required>
-                </div>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="is_admin" name="is_admin">
-                    <label for="is_admin">Criar como administrador</label>
-                </div>
-                <button type="submit" class="btn">Criar Usuário</button>
-            </form>
+            <div class="dashboard-actions">
+                <a href="{{ url_for('index') }}" class="btn btn-sm">
+                    <i class="fas fa-home mr-1"></i> Início
+                </a>
+                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-sign-out-alt mr-1"></i> Sair
+                </a>
+            </div>
         </div>
 
-        <div class="card">
-            <h3>Usuários Existentes</h3>
-            {% if users %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Usuário</th>
-                            <th>Tipo</th>
-                            <th>Criado em</th>
-                            <th>Criado por</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                        <tr>
-                            <td>{{ user.username }}</td>
-                            <td>
-                                {% if user.is_admin %}
-                                    <span class="badge badge-primary">Admin</span>
-                                {% else %}
-                                    <span class="badge badge-secondary">Usuário</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</td>
-                            <td>{{ user.created_by or 'N/A' }}</td>
-                            <td>
-                                <div class="action-buttons">
-                                    {% if user.username != 'admin' %}
-                                        {% if not user.is_admin %}
-                                            <form method="post" action="{{ url_for('admin') }}">
-                                                <input type="hidden" name="action" value="toggle_admin">
-                                                <input type="hidden" name="username" value="{{ user.username }}">
-                                                <input type="hidden" name="make_admin" value="true">
-                                                <button type="submit" class="btn btn-success btn-sm">Tornar Admin</button>
-                                            </form>
-                                        {% else %}
-                                            <form method="post" action="{{ url_for('admin') }}">
-                                                <input type="hidden" name="action" value="toggle_admin">
-                                                <input type="hidden" name="username" value="{{ user.username }}">
-                                                <input type="hidden" name="make_admin" value="false">
-                                                <button type="submit" class="btn btn-secondary btn-sm">Remover Admin</button>
-                                            </form>
-                                        {% endif %}
-                                        
-                                        <form method="post" action="{{ url_for('admin') }}">
-                                            <input type="hidden" name="action" value="delete_user">
-                                            <input type="hidden" name="username" value="{{ user.username }}">
-                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja remover este usuário?')">Remover</button>
-                                        </form>
-                                    {% else %}
-                                        <span style="color: #999; font-size: 12px;">Usuário principal</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>Nenhum usuário encontrado.</p>
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <h3>Status do MySQL</h3>
+                {% if mysql_status == "Conectado" %}
+                    <div class="stat-value text-success">
+                        <i class="fas fa-check-circle mr-1"></i> Conectado
+                    </div>
+                {% else %}
+                    <div class="stat-value text-error">
+                        <i class="fas fa-exclamation-circle mr-1"></i> Desconectado
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="stat-card">
+                <h3>Total de Usuários</h3>
+                <div class="stat-value">
+                    <i class="fas fa-users mr-1"></i> {{ users|length }}
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Administradores</h3>
+                <div class="stat-value">
+                    <i class="fas fa-user-shield mr-1"></i> 
+                    {{ users|selectattr('is_admin', 'eq', true)|list|length }}
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} mb-3">
+                        {% if category == 'success' %}
+                            <i class="fas fa-check-circle mr-1"></i>
+                        {% elif category == 'error' %}
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle mr-1"></i>
+                        {% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
             {% endif %}
+        {% endwith %}
+
+        <div class="card mb-4 fade-in">
+            <div class="card-header">
+                <h2><i class="fas fa-user-plus mr-1"></i> Criar Novo Usuário</h2>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin') }}">
+                    <input type="hidden" name="action" value="create_user">
+                    
+                    <div class="form-group">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user mr-1"></i> Nome de Usuário
+                        </label>
+                        <input id="username" name="username" class="form-control" required 
+                               placeholder="Digite o nome de usuário">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock mr-1"></i> Senha
+                        </label>
+                        <input id="password" name="password" type="password" class="form-control" required 
+                               placeholder="Digite a senha">
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="d-flex align-items-center">
+                            <input type="checkbox" id="is_admin" name="is_admin" class="mr-2">
+                            <label for="is_admin" class="form-label mb-0">
+                                <i class="fas fa-user-shield mr-1"></i> Criar como administrador
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn">
+                        <i class="fas fa-plus-circle mr-1"></i> Criar Usuário
+                    </button>
+                </form>
+            </div>
         </div>
 
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">Voltar ao App</a>
-            <a href="{{ url_for('logout') }}" class="btn">Sair</a>
+        <div class="card fade-in">
+            <div class="card-header">
+                <h2><i class="fas fa-users mr-1"></i> Usuários do Sistema</h2>
+            </div>
+            
+            <div class="card-body">
+                {% if users %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Usuário</th>
+                                    <th>Tipo</th>
+                                    <th>Criado em</th>
+                                    <th>Criado por</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ user.username }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if user.is_admin %}
+                                            <span class="badge badge-primary">
+                                                <i class="fas fa-user-shield mr-1"></i> Admin
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">
+                                                <i class="fas fa-user mr-1"></i> Usuário
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%d/%m/%Y %H:%M') if user.created_at else 'N/A' }}</td>
+                                    <td>{{ user.created_by or 'N/A' }}</td>
+                                    <td>
+                                        <div class="table-actions">
+                                            {% if user.username != 'admin' %}
+                                                {% if not user.is_admin %}
+                                                    <form method="post" action="{{ url_for('admin') }}" class="d-inline">
+                                                        <input type="hidden" name="action" value="toggle_admin">
+                                                        <input type="hidden" name="username" value="{{ user.username }}">
+                                                        <input type="hidden" name="make_admin" value="true">
+                                                        <button type="submit" class="btn btn-sm btn-success">
+                                                            <i class="fas fa-user-shield"></i>
+                                                        </button>
+                                                    </form>
+                                                {% else %}
+                                                    <form method="post" action="{{ url_for('admin') }}" class="d-inline">
+                                                        <input type="hidden" name="action" value="toggle_admin">
+                                                        <input type="hidden" name="username" value="{{ user.username }}">
+                                                        <input type="hidden" name="make_admin" value="false">
+                                                        <button type="submit" class="btn btn-sm btn-secondary">
+                                                            <i class="fas fa-user"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                                
+                                                <form method="post" action="{{ url_for('admin') }}" class="d-inline">
+                                                    <input type="hidden" name="action" value="delete_user">
+                                                    <input type="hidden" name="username" value="{{ user.username }}">
+                                                    <button type="submit" class="btn btn-sm btn-danger" 
+                                                            onclick="return confirm('Tem certeza que deseja remover o usuário {{ user.username }}?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <span class="badge">Usuário principal</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> 
+                        Nenhum usuário encontrado no sistema.
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 Trend App - Todos os direitos reservados</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

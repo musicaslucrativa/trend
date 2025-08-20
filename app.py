@@ -28,7 +28,7 @@ TEMPLATES_DIR = PROJECT_ROOT / 'templates'
 for d in [UPLOAD_DIR, PROCESSED_DIR, TEMPLATES_DIR]:
 	os.makedirs(d, exist_ok=True)
 
-app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
+app = Flask(__name__, template_folder=str(TEMPLATES_DIR), static_folder='static')
 # Use a secure secret key from environment or generate a random one
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
 # Allow up to 16 MB per upload (reduced for mobile stability)
@@ -39,6 +39,13 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # Set permanent session lifetime to 1 day
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400
+
+# Ensure static directory exists
+STATIC_DIR = PROJECT_ROOT / 'static'
+os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(STATIC_DIR / 'css', exist_ok=True)
+os.makedirs(STATIC_DIR / 'js', exist_ok=True)
+os.makedirs(STATIC_DIR / 'images', exist_ok=True)
 
 # Simple hardcoded users (admin/admin123)
 USERS = {
