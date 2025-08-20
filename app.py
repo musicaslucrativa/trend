@@ -403,7 +403,11 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
     import shutil
     shutil.copy2(src, dst)
     
-    # Aplica todos os metadados diretamente no arquivo
+    # Para vídeos, usamos uma abordagem diferente
+    if is_video:
+        return apply_video_metadata(dst, meta)
+    
+    # Para imagens, usamos a abordagem padrão
     args = ["exiftool", "-m", "-q", "-overwrite_original"]
     
     # Adiciona todos os metadados EXIF
@@ -432,46 +436,95 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
         f"-GPSLongitudeRef={meta.get('gps_longitude_ref', 'West')}"
     ])
     
-    # Metadados específicos para vídeo - aplicando TODOS os metadados da trend
-    if is_video:
-        args.extend([
-            # Metadados críticos para vídeos da trend
-            "-Make=Meta View",
-            "-Model=Ray-Ban Meta Smart Glasses",
-            "-Artist=Meta View",
-            "-Software=Ray-Ban Meta Smart Glasses",
-            "-By-line=Meta View",
-            "-Creator=Meta View",
-            "-Copyright=Meta View",
-            
-            # Metadados técnicos para vídeos
-            "-VideoFrameRate=30",
-            "-VideoCodec=H.264",
-            "-CompressorName=H.264",
-            "-VideoAvgBitrate=10000000",
-            
-            # Datas de criação
-            f"-CreationDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
-            f"-CreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
-            f"-MediaCreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
-            f"-TrackCreateDate={meta.get('creation_date', datetime.now().strftime('%Y:%m:%d %H:%M:%S'))}",
-            
-            # Metadados XMP
-            "-XMP-dc:Creator=Meta View",
-            "-XMP-dc:Title=Ray-Ban Meta Smart Glasses",
-            "-XMP-dc:Rights=Meta View",
-            
-            # Outros metadados importantes da trend
-            "-DeviceManufacturer=Meta View",
-            "-DeviceModelName=Ray-Ban Meta Smart Glasses",
-            "-DeviceSerialNumber=34D16852-7110-470A-8B25-D48E3A791E26"
-        ])
-    
     # Aplica no arquivo de destino
     args.append(str(dst))
     
-    print(f"Applying metadata with command: {' '.join(args)}")
+    print(f"Applying image metadata with command: {' '.join(args)}")
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
+    """Aplica metadados específicos para vídeos"""
+    print(f"Applying video metadata to {video_path}")
+    
+    # Primeiro, aplicamos os metadados básicos
+    basic_args = [
+        "exiftool", "-m", "-q", "-overwrite_original",
+        "-Make=Meta View",
+        "-Model=Ray-Ban Meta Smart Glasses",
+        "-Artist=Meta View",
+        "-Author=Meta View",
+        "-Creator=Meta View",
+        "-By-line=Meta View",
+        "-Copyright=Meta View",
+        "-GPSLatitude=22 deg 58' 46.24\" S",
+        "-GPSLongitude=43 deg 24' 42.09\" W",
+        "-GPSLatitudeRef=South",
+        "-GPSLongitudeRef=West",
+        str(video_path)
+    ]
+    
+    basic_proc = subprocess.run(basic_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(f"Basic metadata result: {basic_proc.returncode}")
+    
+    # Depois, aplicamos os metadados técnicos
+    tech_args = [
+        "exiftool", "-m", "-q", "-overwrite_original",
+        "-VideoFrameRate=30",
+        "-VideoCodec=H.264",
+        "-CompressorName=H.264",
+        "-VideoAvgBitrate=10000000",
+        str(video_path)
+    ]
+    
+    tech_proc = subprocess.run(tech_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(f"Technical metadata result: {tech_proc.returncode}")
+    
+    # Depois, aplicamos as datas
+    date_str = datetime.now().strftime('%Y:%m:%d %H:%M:%S')
+    date_args = [
+        "exiftool", "-m", "-q", "-overwrite_original",
+        f"-CreationDate={date_str}",
+        f"-CreateDate={date_str}",
+        f"-MediaCreateDate={date_str}",
+        f"-TrackCreateDate={date_str}",
+        str(video_path)
+    ]
+    
+    date_proc = subprocess.run(date_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(f"Date metadata result: {date_proc.returncode}")
+    
+    # Por fim, aplicamos os metadados XMP
+    xmp_args = [
+        "exiftool", "-m", "-q", "-overwrite_original",
+        "-XMP-dc:Creator=Meta View",
+        "-XMP-dc:Title=Ray-Ban Meta Smart Glasses",
+        "-XMP-dc:Rights=Meta View",
+        "-XMP:Make=Meta View",
+        "-XMP:Model=Ray-Ban Meta Smart Glasses",
+        "-XMP:Artist=Meta View",
+        "-XMP:Author=Meta View",
+        str(video_path)
+    ]
+    
+    xmp_proc = subprocess.run(xmp_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(f"XMP metadata result: {xmp_proc.returncode}")
+    
+    # Aplicamos os metadados específicos da trend
+    trend_args = [
+        "exiftool", "-m", "-q", "-overwrite_original",
+        "-DeviceManufacturer=Meta View",
+        "-DeviceModelName=Ray-Ban Meta Smart Glasses",
+        "-DeviceSerialNumber=34D16852-7110-470A-8B25-D48E3A791E26",
+        "-user_comment=34D16852-7110-470A-8B25-D48E3A791E26",
+        "-checksum=89c4e3c64b0175c4de454f5f34504434",
+        str(video_path)
+    ]
+    
+    trend_proc = subprocess.run(trend_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(f"Trend metadata result: {trend_proc.returncode}")
+    
+    # Retornamos o resultado do último processo
+    return trend_proc
 
 @app.route('/mysql-status')
 def mysql_status():
@@ -828,8 +881,13 @@ def upload():
                 except:
                     metadata_ok = False
                 
-                # If metadata is missing, try a more direct approach
-                if not metadata_ok:
+                # If metadata is missing for videos, try again with our specialized function
+                if not metadata_ok and is_video:
+                    print("Video metadata missing, applying specialized video metadata...")
+                    apply_video_metadata(processed_path, TREND_META)
+                    print("Video metadata application completed")
+                # If metadata is missing for images, try a more direct approach
+                elif not metadata_ok:
                     print("Critical metadata missing, trying direct approach...")
                     # Direct approach for stubborn files
                     direct_args = [
@@ -839,14 +897,10 @@ def upload():
                         "-GPSLatitude=22 deg 58' 46.24\" S",
                         "-GPSLongitude=43 deg 24' 42.09\" W",
                         "-GPSLatitudeRef=South",
-                        "-GPSLongitudeRef=West"
+                        "-GPSLongitudeRef=West",
+                        "-user_comment=34D16852-7110-470A-8B25-D48E3A791E26",
+                        "-checksum=89c4e3c64b0175c4de454f5f34504434"
                     ]
-                    
-                    if is_video:
-                        direct_args.extend([
-                            "-Artist=Meta View",
-                            "-Creator=Meta View"
-                        ])
                         
                     direct_args.append(str(processed_path))
                     subprocess.run(direct_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
