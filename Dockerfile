@@ -3,7 +3,9 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1 \
-	PORT=8000
+	PORT=8000 \
+	WEB_CONCURRENCY=2 \
+	GUNICORN_TIMEOUT=120
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends exiftool \
@@ -21,4 +23,4 @@ RUN mkdir -p /app/uploads /app/processed
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "gunicorn -b 0.0.0.0:${PORT} app:app"]
+CMD ["sh", "-c", "gunicorn -w ${WEB_CONCURRENCY} -k sync --timeout ${GUNICORN_TIMEOUT} -b 0.0.0.0:${PORT} app:app"]

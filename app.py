@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Any, List
 
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
+from werkzeug.utils import secure_filename
 
 # Base directories
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -19,6 +20,8 @@ for d in [UPLOAD_DIR, PROCESSED_DIR, TEMPLATES_DIR]:
 
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret')
+# Allow up to 32 MB per upload (adjust if needed)
+app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_UPLOAD_MB', '32')) * 1024 * 1024
 
 # Metadata for the trend
 TREND_META: Dict[str, Any] = {
@@ -146,7 +149,9 @@ def upload():
 		flash('Arquivo inválido')
 		return redirect(url_for('index'))
 
-	upload_path = UPLOAD_DIR / file.filename
+	# Sanitize filename for safe filesystem writes
+	filename = secure_filename(file.filename)
+	upload_path = UPLOAD_DIR / filename
 	file.save(str(upload_path))
 
 	processed_name = f"{upload_path.stem}-with-metadata{upload_path.suffix or '.heic'}"
