@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: raspadinha
+    env: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+    # Port is defined by Dockerfile (8000) via gunicorn
