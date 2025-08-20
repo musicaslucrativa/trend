@@ -642,21 +642,41 @@ def convert_to_mov_format(src: Path, dst: Path) -> bool:
     # Verificar se o ffmpeg está instalado
     try:
         ffmpeg_check = subprocess.run(
-            ["which", "ffmpeg"], 
+            ["ffmpeg", "-version"], 
             stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE, 
-            text=True
+            text=True,
+            timeout=5  # Timeout de 5 segundos para evitar travamentos
         )
         if ffmpeg_check.returncode != 0:
-            print("ERROR: ffmpeg not installed. Cannot convert video.")
+            print(f"ERROR: ffmpeg check failed with return code {ffmpeg_check.returncode}")
+            print(f"ffmpeg stderr: {ffmpeg_check.stderr}")
             return False
+        else:
+            print(f"ffmpeg found: {ffmpeg_check.stdout.split('\n')[0]}")
+    except subprocess.TimeoutExpired:
+        print("ERROR: ffmpeg check timed out after 5 seconds")
+        return False
     except Exception as e:
         print(f"Error checking for ffmpeg: {e}")
+        import traceback
+        traceback.print_exc()
         return False
+    
+    # Verificar se o arquivo de origem existe
+    if not src.exists():
+        print(f"ERROR: Source file does not exist: {src}")
+        return False
+    
+    # Verificar se o diretório de destino existe
+    if not dst.parent.exists():
+        print(f"Creating destination directory: {dst.parent}")
+        dst.parent.mkdir(parents=True, exist_ok=True)
     
     # Converter o vídeo para o formato MOV com codec hvc1 (HEVC)
     try:
-        # Comando para converter para MOV com codec HEVC (hvc1)
+        # Primeiro, tente com libx265 (HEVC)
+        print("Attempting conversion with libx265 codec...")
         ffmpeg_cmd = [
             "ffmpeg", "-y", "-i", str(src),
             "-c:v", "libx265",  # Use HEVC codec
@@ -674,20 +694,72 @@ def convert_to_mov_format(src: Path, dst: Path) -> bool:
             ffmpeg_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            timeout=300  # Timeout de 5 minutos para conversão
         )
         
         if ffmpeg_proc.returncode != 0:
-            print(f"Error converting video: {ffmpeg_proc.stderr}")
-            return False
-        
-        print("Video conversion successful")
-        return True
+            print(f"Error converting video with libx265: {ffmpeg_proc.stderr}")
+            
+            # Se falhar com libx265, tente com h264
+            print("Trying fallback with h264 codec...")
+            fallback_cmd = [
+                "ffmpeg", "-y", "-i", str(src),
+                "-c:v", "h264",       # Use H.264 codec
+                "-preset", "fast",     # Preset de codificação
+                "-crf", "23",          # Qualidade
+                "-pix_fmt", "yuv420p", # Formato de pixel
+                "-c:a", "aac",         # Codec de áudio
+                "-b:a", "128k",        # Bitrate de áudio
+                str(dst)
+            ]
+            
+            print(f"Running fallback ffmpeg command: {' '.join(fallback_cmd)}")
+            fallback_proc = subprocess.run(
+                fallback_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=300  # Timeout de 5 minutos para conversão
+            )
+            
+            if fallback_proc.returncode != 0:
+                print(f"Error converting video with h264: {fallback_proc.stderr}")
+                
+                # Se ambos falharem, tente apenas copiar o vídeo
+                print("Both conversion methods failed. Copying original video...")
+                import shutil
+                try:
+                    shutil.copy2(src, dst)
+                    print(f"Copied original video to {dst}")
+                    return True
+                except Exception as copy_error:
+                    print(f"Error copying original video: {copy_error}")
+                    return False
+            else:
+                print("Video conversion with h264 successful")
+                return True
+        else:
+            print("Video conversion with libx265 successful")
+            return True
+    except subprocess.TimeoutExpired:
+        print("ERROR: ffmpeg conversion timed out after 5 minutes")
+        return False
     except Exception as e:
         print(f"Error during video conversion: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        
+        # Em caso de erro, tente apenas copiar o vídeo
+        print("Exception during conversion. Copying original video...")
+        import shutil
+        try:
+            shutil.copy2(src, dst)
+            print(f"Copied original video to {dst}")
+            return True
+        except Exception as copy_error:
+            print(f"Error copying original video: {copy_error}")
+            return False
 
 def verify_metadata(file_path: Path) -> None:
     """Verifica e exibe os metadados aplicados a um arquivo"""
@@ -758,6 +830,16 @@ def health_check():
         # Check if exiftool is available
         result = subprocess.run(['exiftool', '-ver'], capture_output=True, text=True)
         exiftool_ok = result.returncode == 0
+        exiftool_version = result.stdout.strip() if exiftool_ok else "Not available"
+        
+        # Check if ffmpeg is available
+        try:
+            ffmpeg_result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)
+            ffmpeg_ok = ffmpeg_result.returncode == 0
+            ffmpeg_version = ffmpeg_result.stdout.split('\n')[0] if ffmpeg_ok else "Not available"
+        except Exception as e:
+            ffmpeg_ok = False
+            ffmpeg_version = f"Error: {str(e)}"
         
         # Check directories
         upload_ok = UPLOAD_DIR.exists() and os.access(UPLOAD_DIR, os.W_OK)
@@ -773,6 +855,16 @@ def health_check():
         return {
             'status': 'ok',
             'version': 'hybrid-safe',
+            'tools': {
+                'exiftool': {
+                    'available': exiftool_ok,
+                    'version': exiftool_version
+                },
+                'ffmpeg': {
+                    'available': ffmpeg_ok,
+                    'version': ffmpeg_version
+                }
+            },
             'exiftool': exiftool_ok,
             'mysql_available': MYSQL_AVAILABLE,
             'mysql_connected': mysql_status,

@@ -8,8 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 	GUNICORN_TIMEOUT=120
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends exiftool ffmpeg \
+	&& apt-get install -y --no-install-recommends exiftool ffmpeg libx265-dev x264 \
+	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
+
+# Verificar se o ffmpeg foi instalado corretamente
+RUN ffmpeg -version && exiftool -ver
 
 WORKDIR /app
 
