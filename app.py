@@ -372,10 +372,11 @@ TREND_META: Dict[str, Any] = {
 }
 
 # EXIF tags we will write natively; the rest goes into XMP description JSON
+# NOTE: orientação removida para preservar a original da imagem
 EXIF_MAP = {
 	"make": ("EXIF:Make", None),
 	"model": ("EXIF:Model", None),
-	"orientation": ("EXIF:Orientation", None),
+	# "orientation": ("EXIF:Orientation", None),  # REMOVIDO para preservar orientação original
 	"exif_version": ("EXIF:ExifVersion", "0220"),
 	"subject_distance": ("EXIF:SubjectDistance", None),
 	"user_comment": ("EXIF:UserComment", None),
@@ -462,10 +463,19 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             print(f"Error copying image file: {e}")
             return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error copying image file: {e}")
         
+        # Para imagens, preservar a orientação original ANTES de aplicar metadados
+        print("Preserving original image orientation...")
+        
+        # Ler a orientação original da imagem
+        orientation_cmd = ["exiftool", "-s", "-s", "-s", "-Orientation", str(dst)]
+        orientation_result = subprocess.run(orientation_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        original_orientation = orientation_result.stdout.strip() if orientation_result.returncode == 0 else "1"
+        print(f"Original image orientation: {original_orientation}")
+        
         # Para imagens, usamos a abordagem padrão
         args = ["exiftool", "-m", "-q", "-overwrite_original"]
         
-        # Adiciona todos os metadados EXIF
+        # Adiciona todos os metadados EXIF (orientação já foi removida do EXIF_MAP)
         for key, (exif_tag, override_value) in EXIF_MAP.items():
             value = override_value if override_value is not None else meta.get(key)
             if value is not None:
@@ -490,6 +500,11 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             f"-GPSLatitudeRef={meta.get('gps_latitude_ref', 'South')}",
             f"-GPSLongitudeRef={meta.get('gps_longitude_ref', 'West')}"
         ])
+        
+        # IMPORTANTE: Preservar a orientação original
+        if original_orientation and original_orientation != "":
+            args.append(f"-Orientation={original_orientation}")
+            print(f"Preserving original orientation: {original_orientation}")
         
         # Aplica no arquivo de destino
         args.append(str(dst))
