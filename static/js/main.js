@@ -91,8 +91,10 @@ function handleFileSelect(file) {
         // Criar URL para o vídeo
         const videoURL = URL.createObjectURL(file);
         previewVideo.src = videoURL;
-        previewVideo.onload = function() {
-            URL.revokeObjectURL(videoURL);
+        // Vídeos não têm evento onload, usamos loadedmetadata
+        previewVideo.onloadedmetadata = function() {
+            // Não revogamos a URL aqui para permitir a visualização do vídeo
+            console.log("Vídeo carregado com sucesso");
         };
     } else if (imageContainer && previewImg) {
         // Mostrar imagem, esconder vídeo
@@ -103,7 +105,8 @@ function handleFileSelect(file) {
         const imageURL = URL.createObjectURL(file);
         previewImg.src = imageURL;
         previewImg.onload = function() {
-            URL.revokeObjectURL(imageURL);
+            // Não revogamos a URL aqui para permitir a visualização da imagem
+            console.log("Imagem carregada com sucesso");
         };
     }
 }

@@ -106,18 +106,49 @@
         document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('fileInput');
             const submitBtn = document.getElementById('submitBtn');
+            const mediaPreview = document.getElementById('mediaPreview');
+            const imageContainer = document.getElementById('imageContainer');
+            const videoContainer = document.getElementById('videoContainer');
+            const previewImg = document.getElementById('previewImg');
+            const previewVideo = document.getElementById('previewVideo');
+            const previewInfo = document.getElementById('previewInfo');
             
             // File selection
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    
                     // Enable submit button
                     submitBtn.disabled = false;
                     
                     // Update button text based on file type
-                    const isVideo = e.target.files[0].type.startsWith('video/');
+                    const isVideo = file.type.startsWith('video/');
                     submitBtn.innerHTML = isVideo ? 
                         '<i class="fas fa-magic mr-1"></i> Processar vídeo' : 
                         '<i class="fas fa-magic mr-1"></i> Processar imagem';
+                    
+                    // Mostrar área de preview
+                    mediaPreview.style.display = 'block';
+                    
+                    // Exibir informações do arquivo
+                    const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                    previewInfo.textContent = `${file.name} (${fileSize} MB)`;
+                    
+                    // Mostrar preview com base no tipo de arquivo
+                    if (isVideo) {
+                        videoContainer.style.display = 'block';
+                        imageContainer.style.display = 'none';
+                        
+                        const videoURL = URL.createObjectURL(file);
+                        previewVideo.src = videoURL;
+                        previewVideo.controls = true;
+                    } else {
+                        imageContainer.style.display = 'block';
+                        videoContainer.style.display = 'none';
+                        
+                        const imageURL = URL.createObjectURL(file);
+                        previewImg.src = imageURL;
+                    }
                 }
             });
         });
