@@ -443,12 +443,14 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-    """Aplica metadados específicos para vídeos"""
-    print(f"Applying video metadata to {video_path}")
+    """Aplica metadados específicos para vídeos da trend"""
+    print(f"Applying trend metadata to video {video_path}")
     
-    # Primeiro, aplicamos os metadados básicos
-    basic_args = [
+    # Aplicamos todos os metadados de uma vez para garantir compatibilidade
+    all_args = [
         "exiftool", "-m", "-q", "-overwrite_original",
+        
+        # Metadados básicos da trend
         "-Make=Meta View",
         "-Model=Ray-Ban Meta Smart Glasses",
         "-Artist=Meta View",
@@ -456,46 +458,48 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
         "-Creator=Meta View",
         "-By-line=Meta View",
         "-Copyright=Meta View",
+        
+        # Coordenadas GPS exatas da trend
         "-GPSLatitude=22 deg 58' 46.24\" S",
         "-GPSLongitude=43 deg 24' 42.09\" W",
         "-GPSLatitudeRef=South",
         "-GPSLongitudeRef=West",
-        str(video_path)
-    ]
-    
-    basic_proc = subprocess.run(basic_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print(f"Basic metadata result: {basic_proc.returncode}")
-    
-    # Depois, aplicamos os metadados técnicos
-    tech_args = [
-        "exiftool", "-m", "-q", "-overwrite_original",
+        
+        # Metadados técnicos para vídeos
         "-VideoFrameRate=30",
-        "-VideoCodec=H.264",
-        "-CompressorName=H.264",
-        "-VideoAvgBitrate=10000000",
-        str(video_path)
-    ]
-    
-    tech_proc = subprocess.run(tech_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print(f"Technical metadata result: {tech_proc.returncode}")
-    
-    # Depois, aplicamos as datas
-    date_str = datetime.now().strftime('%Y:%m:%d %H:%M:%S')
-    date_args = [
-        "exiftool", "-m", "-q", "-overwrite_original",
-        f"-CreationDate={date_str}",
-        f"-CreateDate={date_str}",
-        f"-MediaCreateDate={date_str}",
-        f"-TrackCreateDate={date_str}",
-        str(video_path)
-    ]
-    
-    date_proc = subprocess.run(date_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print(f"Date metadata result: {date_proc.returncode}")
-    
-    # Por fim, aplicamos os metadados XMP
-    xmp_args = [
-        "exiftool", "-m", "-q", "-overwrite_original",
+        "-CompressorID=avc1",
+        "-CompressorName=AVC Coding",
+        "-HandlerType=Video Track",
+        "-HandlerDescription=VideoHandler",
+        
+        # Metadados de áudio
+        "-MediaLanguageCode=und",
+        "-AudioFormat=mp4a",
+        "-AudioChannels=2",
+        "-AudioBitsPerSample=16",
+        "-AudioSampleRate=44100",
+        
+        # Metadados de cor
+        "-ColorProfiles=nclx",
+        "-ColorPrimaries=BT.709",
+        "-TransferCharacteristics=BT.709",
+        "-MatrixCoefficients=BT.709",
+        "-VideoFullRangeFlag=Limited",
+        
+        # Metadados de resolução
+        "-XResolution=72",
+        "-YResolution=72",
+        "-BitDepth=24",
+        
+        # Datas
+        f"-CreateDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
+        f"-ModifyDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
+        f"-TrackCreateDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
+        f"-TrackModifyDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
+        f"-MediaCreateDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
+        f"-MediaModifyDate={datetime.now().strftime('%Y:%m:%d %H:%M:%S')}",
+        
+        # Metadados XMP
         "-XMP-dc:Creator=Meta View",
         "-XMP-dc:Title=Ray-Ban Meta Smart Glasses",
         "-XMP-dc:Rights=Meta View",
@@ -503,28 +507,62 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
         "-XMP:Model=Ray-Ban Meta Smart Glasses",
         "-XMP:Artist=Meta View",
         "-XMP:Author=Meta View",
-        str(video_path)
-    ]
-    
-    xmp_proc = subprocess.run(xmp_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print(f"XMP metadata result: {xmp_proc.returncode}")
-    
-    # Aplicamos os metadados específicos da trend
-    trend_args = [
-        "exiftool", "-m", "-q", "-overwrite_original",
+        
+        # Metadados específicos da trend
         "-DeviceManufacturer=Meta View",
         "-DeviceModelName=Ray-Ban Meta Smart Glasses",
         "-DeviceSerialNumber=34D16852-7110-470A-8B25-D48E3A791E26",
-        "-user_comment=34D16852-7110-470A-8B25-D48E3A791E26",
+        "-UserComment=34D16852-7110-470A-8B25-D48E3A791E26",
         "-checksum=89c4e3c64b0175c4de454f5f34504434",
+        
+        # Outros metadados importantes
+        "-MajorBrand=MP4 Base Media v1 [IS0 14496-12:2003]",
+        "-MinorVersion=0.2.0",
+        
+        # Aplica no arquivo
         str(video_path)
     ]
     
-    trend_proc = subprocess.run(trend_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print(f"Trend metadata result: {trend_proc.returncode}")
+    # Executa o comando exiftool com todos os metadados
+    all_proc = subprocess.run(all_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(f"Video metadata application result: {all_proc.returncode}")
     
-    # Retornamos o resultado do último processo
-    return trend_proc
+    # Se o primeiro comando falhou, tente uma abordagem alternativa
+    if all_proc.returncode != 0:
+        print(f"Error applying metadata: {all_proc.stderr}")
+        print("Trying alternative approach...")
+        
+        # Abordagem alternativa: aplicar metadados em etapas menores
+        basic_args = [
+            "exiftool", "-m", "-q", "-overwrite_original",
+            "-Make=Meta View",
+            "-Model=Ray-Ban Meta Smart Glasses",
+            "-UserComment=34D16852-7110-470A-8B25-D48E3A791E26",
+            "-checksum=89c4e3c64b0175c4de454f5f34504434",
+            str(video_path)
+        ]
+        
+        basic_proc = subprocess.run(basic_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Basic metadata result: {basic_proc.returncode}")
+        
+        # Aplicar metadados GPS separadamente
+        gps_args = [
+            "exiftool", "-m", "-q", "-overwrite_original",
+            "-GPSLatitude=22 deg 58' 46.24\" S",
+            "-GPSLongitude=43 deg 24' 42.09\" W",
+            "-GPSLatitudeRef=South",
+            "-GPSLongitudeRef=West",
+            str(video_path)
+        ]
+        
+        gps_proc = subprocess.run(gps_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"GPS metadata result: {gps_proc.returncode}")
+        
+        # Retorna o resultado da abordagem alternativa
+        return basic_proc
+    
+    # Retorna o resultado do comando principal
+    return all_proc
 
 @app.route('/mysql-status')
 def mysql_status():
