@@ -408,46 +408,56 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
     """Aplica todos os metadados da trend usando exiftool"""
     # Primeiro, copia o arquivo para preservar a estrutura original
     import shutil
-    shutil.copy2(src, dst)
     
-    # Para vídeos, usamos uma abordagem diferente
     if is_video:
+        # Para vídeos, verificar se precisamos converter para MOV
+        if dst.suffix.lower() != '.mov':
+            print(f"Warning: Output file should be .mov, but got {dst.suffix}")
+            # Continuamos mesmo assim, pois já ajustamos a extensão na função de upload
+        
+        # Copiar o arquivo primeiro
+        shutil.copy2(src, dst)
+        
+        # Aplicar metadados específicos para vídeos
         return apply_video_metadata(dst, meta)
-    
-    # Para imagens, usamos a abordagem padrão
-    args = ["exiftool", "-m", "-q", "-overwrite_original"]
-    
-    # Adiciona todos os metadados EXIF
-    for key, (exif_tag, override_value) in EXIF_MAP.items():
-        value = override_value if override_value is not None else meta.get(key)
-        if value is not None:
-            args.append(f"-{exif_tag}={value}")
-    
-    # Adiciona todos os outros metadados como XMP
-    remaining = {}
-    for k, v in meta.items():
-        if k not in EXIF_MAP:
-            remaining[k] = v
-    
-    # Adiciona o JSON completo como XMP Description
-    desc_json = json.dumps(remaining, ensure_ascii=False)
-    args.append(f"-XMP-dc:Description={desc_json}")
-    
-    # Adiciona metadados específicos da trend que são críticos
-    args.extend([
-        f"-Make={meta.get('make', 'Meta View')}",
-        f"-Model={meta.get('model', 'Ray-Ban Meta Smart Glasses')}",
-        f"-GPSLatitude={meta.get('gps_latitude', '22 deg 58\' 46.24\" S')}",
-        f"-GPSLongitude={meta.get('gps_longitude', '43 deg 24\' 42.09\" W')}",
-        f"-GPSLatitudeRef={meta.get('gps_latitude_ref', 'South')}",
-        f"-GPSLongitudeRef={meta.get('gps_longitude_ref', 'West')}"
-    ])
-    
-    # Aplica no arquivo de destino
-    args.append(str(dst))
-    
-    print(f"Applying image metadata with command: {' '.join(args)}")
-    return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    else:
+        # Para imagens, copiamos o arquivo e aplicamos os metadados padrão
+        shutil.copy2(src, dst)
+        
+        # Para imagens, usamos a abordagem padrão
+        args = ["exiftool", "-m", "-q", "-overwrite_original"]
+        
+        # Adiciona todos os metadados EXIF
+        for key, (exif_tag, override_value) in EXIF_MAP.items():
+            value = override_value if override_value is not None else meta.get(key)
+            if value is not None:
+                args.append(f"-{exif_tag}={value}")
+        
+        # Adiciona todos os outros metadados como XMP
+        remaining = {}
+        for k, v in meta.items():
+            if k not in EXIF_MAP:
+                remaining[k] = v
+        
+        # Adiciona o JSON completo como XMP Description
+        desc_json = json.dumps(remaining, ensure_ascii=False)
+        args.append(f"-XMP-dc:Description={desc_json}")
+        
+        # Adiciona metadados específicos da trend que são críticos
+        args.extend([
+            f"-Make={meta.get('make', 'Meta View')}",
+            f"-Model={meta.get('model', 'Ray-Ban Meta Smart Glasses')}",
+            f"-GPSLatitude={meta.get('gps_latitude', '22 deg 58\' 46.24\" S')}",
+            f"-GPSLongitude={meta.get('gps_longitude', '43 deg 24\' 42.09\" W')}",
+            f"-GPSLatitudeRef={meta.get('gps_latitude_ref', 'South')}",
+            f"-GPSLongitudeRef={meta.get('gps_longitude_ref', 'West')}"
+        ])
+        
+        # Aplica no arquivo de destino
+        args.append(str(dst))
+        
+        print(f"Applying image metadata with command: {' '.join(args)}")
+        return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
     """Aplica metadados específicos para vídeos da trend baseado no arquivo IMG_5975.MOV"""
@@ -459,25 +469,80 @@ def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.C
     # Data atual formatada
     current_date = datetime.now().strftime('%Y:%m:%d %H:%M:%S')
     
-    # Metadados essenciais para a trend
-    basic_args = [
-        "exiftool", "-m", "-q", "-overwrite_original",
-        "-Copyright=Meta AI",
-        "-Model=Ray-Ban Meta Smart Glasses",
-        f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
-        "-GPSLatitude=15 deg 47' 26.16\" S",
-        "-GPSLongitude=47 deg 53' 3.48\" W",
-        "-GPSLatitudeRef=South",
-        "-GPSLongitudeRef=West",
-        str(video_path)
-    ]
+    # Primeiro, vamos verificar se é um arquivo MOV ou MP4
+    file_type_proc = subprocess.run(
+        ["exiftool", "-s", "-s", "-s", "-FileType", str(video_path)], 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.PIPE, 
+        text=True
+    )
+    file_type = file_type_proc.stdout.strip()
+    print(f"File type: {file_type}")
     
-    # Executar o comando com os metadados essenciais
-    basic_proc = subprocess.run(basic_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print(f"Basic video metadata result: {basic_proc.returncode}")
-    
-    # Retorna o resultado
-    return basic_proc
+    # Metadados específicos para o formato MOV (como o original)
+    if file_type == "MOV":
+        # Aplicar os metadados exatos do MOV original
+        mov_args = [
+            "exiftool", "-m", "-overwrite_original",
+            "-MajorBrand=Apple QuickTime (.MOV/QT)",
+            "-MinorVersion=0.0.0",
+            "-CompatibleBrands=qt",
+            "-Copyright=Meta AI",
+            "-Model=Ray-Ban Meta Smart Glasses",
+            f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
+            "-GPSLatitude=15 deg 47' 26.16\" S",
+            "-GPSLongitude=47 deg 53' 3.48\" W",
+            "-GPSLatitudeRef=South",
+            "-GPSLongitudeRef=West",
+            # Tentar definir o compressor para hvc1 (como no original)
+            "-CompressorID=hvc1",
+            "-CompressorName='hvc1'",
+            str(video_path)
+        ]
+        
+        mov_proc = subprocess.run(mov_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"MOV metadata result: {mov_proc.returncode}")
+        
+        # Se houve erro com o compressor, tente sem ele
+        if mov_proc.returncode != 0 and "CompressorID" in mov_proc.stderr:
+            print("Error with compressor ID, trying without it")
+            mov_args = [
+                "exiftool", "-m", "-overwrite_original",
+                "-MajorBrand=Apple QuickTime (.MOV/QT)",
+                "-MinorVersion=0.0.0",
+                "-CompatibleBrands=qt",
+                "-Copyright=Meta AI",
+                "-Model=Ray-Ban Meta Smart Glasses",
+                f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
+                "-GPSLatitude=15 deg 47' 26.16\" S",
+                "-GPSLongitude=47 deg 53' 3.48\" W",
+                "-GPSLatitudeRef=South",
+                "-GPSLongitudeRef=West",
+                str(video_path)
+            ]
+            
+            mov_proc = subprocess.run(mov_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print(f"MOV metadata (without compressor) result: {mov_proc.returncode}")
+        
+        return mov_proc
+    else:
+        # Para outros formatos (MP4, etc.), aplicar metadados genéricos
+        basic_args = [
+            "exiftool", "-m", "-overwrite_original",
+            "-Copyright=Meta AI",
+            "-Model=Ray-Ban Meta Smart Glasses",
+            f"-Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id={device_id}",
+            "-GPSLatitude=15 deg 47' 26.16\" S",
+            "-GPSLongitude=47 deg 53' 3.48\" W",
+            "-GPSLatitudeRef=South",
+            "-GPSLongitudeRef=West",
+            str(video_path)
+        ]
+        
+        basic_proc = subprocess.run(basic_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Basic video metadata result: {basic_proc.returncode}")
+        
+        return basic_proc
 
 @app.route('/mysql-status')
 def mysql_status():
@@ -774,7 +839,11 @@ def upload():
             return redirect(url_for('index'))
 
         # Prepare output filename
-        processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
+        if is_video:
+            # Para vídeos, sempre usar extensão .mov para compatibilidade com a trend
+            processed_name = f"{upload_path.stem}-trend.mov"
+        else:
+            processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
         processed_path = PROCESSED_DIR / processed_name
         
         # Apply metadata with improved function (includes copying the file)
