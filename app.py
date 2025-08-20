@@ -526,57 +526,59 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying image metadata: {e}")
 
 def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-    """ESTRATÉGIA DEFINITIVA: COPIAR EXATAMENTE o IMG_5975.MOV sem NENHUMA modificação"""
-    print(f"PURE COPY strategy: Copying working video exactly to: {video_path}")
+    """NOVA ESTRATÉGIA: Aplicar metadados IGUAL às imagens - preservar vídeo do usuário"""
+    print(f"Applying video metadata LIKE IMAGES: preserving user content in {video_path}")
     
-    # Caminho para o vídeo original que SABEMOS que funciona
-    # Tentar tanto na raiz atual quanto na raiz do projeto
-    original_working_video = Path("IMG_5975.MOV")
-    if not original_working_video.exists():
-        original_working_video = Path("/app/IMG_5975.MOV")  # Caminho no servidor
+    # AGORA vamos fazer IGUAL às imagens:
+    # 1. O vídeo do usuário JÁ foi copiado para video_path
+    # 2. Vamos aplicar APENAS os metadados essenciais
+    # 3. SEM modificar o conteúdo visual
     
-    # Verificar se o vídeo original existe no servidor
-    if not original_working_video.exists():
-        print("WARNING: Original working video not found, trying fallback conversion...")
-        return fallback_video_conversion(video_path)
-    
-    print("PURE COPY: Copying IMG_5975.MOV EXACTLY without ANY modification...")
+    print("Step 1: Applying essential metadata to user's video (like images)...")
     
     try:
-        import shutil
-        
-        # ESTRATÉGIA FINAL: Copiar o arquivo EXATAMENTE como está
-        # SEM nenhuma modificação, conversão ou processamento
-        print(f"Copying {original_working_video} -> {video_path}")
-        shutil.copy2(str(original_working_video), str(video_path))
-        
-        # Verificar se a cópia foi bem-sucedida
-        if video_path.exists():
-            original_size = original_working_video.stat().st_size
-            copied_size = video_path.stat().st_size
+        # Aplicar APENAS os metadados essenciais que fazem a trend funcionar
+        # Usando a MESMA abordagem das imagens
+        essential_cmd = [
+            "exiftool", "-m", "-overwrite_original",
             
-            if original_size == copied_size:
-                print(f"PURE COPY successful! File sizes match: {original_size} bytes")
-                print("Video is now IDENTICAL to the working IMG_5975.MOV")
-                
-                # Verificar que os metadados são idênticos
-                verify_cmd = ["exiftool", "-s", "-s", "-s", "-Keys:Copyright", "-Keys:Model", str(video_path)]
-                verify_result = subprocess.run(verify_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                print(f"Copied video metadata check: {verify_result.stdout.strip()}")
-                
-                return subprocess.CompletedProcess(args=[], returncode=0, stdout="Pure copy successful", stderr="")
-            else:
-                print(f"ERROR: File size mismatch! Original: {original_size}, Copied: {copied_size}")
-                return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="File size mismatch")
+            # Metadados MÍNIMOS mas ESSENCIAIS
+            "-Keys:Copyright=Meta AI",
+            "-Keys:Model=2Q37S02H6H006X",  # Modelo exato que funciona
+            "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
+            "-Keys:GPSCoordinates=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
+            
+            # Data atual
+            f"-Keys:CreationDate={datetime.now().strftime('%Y:%m:%d %H:%M:%SZ')}",
+            
+            str(video_path)
+        ]
+        
+        print(f"Applying essential metadata: {' '.join(essential_cmd)}")
+        metadata_proc = subprocess.run(essential_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        print(f"Metadata application result: {metadata_proc.returncode}")
+        if metadata_proc.stderr:
+            print(f"Metadata stderr: {metadata_proc.stderr}")
+        
+        if metadata_proc.returncode == 0:
+            print("✅ SUCCESS: Metadata applied to user's video (like images)")
+            
+            # Verificar os metadados aplicados
+            verify_cmd = ["exiftool", "-s", "-s", "-s", "-Keys:Copyright", "-Keys:Model", str(video_path)]
+            verify_result = subprocess.run(verify_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print(f"Applied metadata verification: {verify_result.stdout.strip()}")
+            
+            return metadata_proc
         else:
-            print("ERROR: Copy failed - destination file does not exist")
-            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="Copy failed")
+            print("❌ ERROR: Failed to apply metadata to user's video")
+            return metadata_proc
             
     except Exception as e:
-        print(f"PURE COPY exception: {e}")
+        print(f"Exception applying video metadata: {e}")
         import traceback
         traceback.print_exc()
-        return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Copy exception: {e}")
+        return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Exception: {e}")
 
 def fallback_video_conversion(video_path: Path) -> subprocess.CompletedProcess:
     """Método de fallback se a clonagem falhar"""
