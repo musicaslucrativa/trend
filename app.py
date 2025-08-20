@@ -410,32 +410,25 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
     import shutil
     
     if is_video:
-        # Para vídeos, verificar se precisamos converter para MOV
-        if dst.suffix.lower() != '.mov':
-            print(f"Warning: Output file should be .mov, but got {dst.suffix}")
-            # Continuamos mesmo assim, pois já ajustamos a extensão na função de upload
-        
+        # Para vídeos, vamos APENAS copiar o arquivo original SEM conversão
+        # e aplicar os metadados EXATOS do IMG_5975.MOV
         print(f"Processing video file: {src} -> {dst}")
+        print("IMPORTANT: Copying original video WITHOUT conversion to preserve format")
         
-        # Converter o vídeo para o formato exato do IMG_5975.MOV
-        print("Converting video to exact format of IMG_5975.MOV")
-        conversion_success = convert_to_mov_format(src, dst)
+        try:
+            # Copiar o arquivo original SEM conversão
+            shutil.copy2(src, dst)
+            print(f"Video file copied successfully: {dst}")
+            
+            # Verificar se o arquivo foi copiado corretamente
+            if not dst.exists():
+                print(f"ERROR: Failed to copy video file to {dst}")
+                return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="Failed to copy video file")
+        except Exception as e:
+            print(f"Error copying video file: {e}")
+            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error copying video file: {e}")
         
-        if not conversion_success:
-            print("Video conversion failed, falling back to simple copy")
-            try:
-                shutil.copy2(src, dst)
-                print(f"Video file copied successfully: {dst}")
-                
-                # Verificar se o arquivo foi copiado corretamente
-                if not dst.exists():
-                    print(f"ERROR: Failed to copy video file to {dst}")
-                    return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="Failed to copy video file")
-            except Exception as e:
-                print(f"Error copying video file: {e}")
-                return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error copying video file: {e}")
-        
-        # Verificar o tipo de arquivo resultante
+        # Verificar o tipo de arquivo copiado
         file_type_proc = subprocess.run(
             ["exiftool", "-s", "-s", "-s", "-FileType", "-CompressorID", str(dst)], 
             stdout=subprocess.PIPE, 
@@ -443,11 +436,11 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             text=True
         )
         if file_type_proc.returncode == 0:
-            print(f"Processed video file info: {file_type_proc.stdout.strip()}")
+            print(f"Original video file info: {file_type_proc.stdout.strip()}")
         
-        # Aplicar metadados específicos para vídeos
+        # Aplicar metadados específicos para vídeos SEM alterar o formato
         try:
-            result = apply_video_metadata(dst, meta)
+            result = apply_exact_video_metadata(dst, meta)
             print(f"Video metadata application completed with return code: {result.returncode}")
             
             # Verificar se os metadados foram aplicados corretamente
@@ -516,6 +509,90 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             import traceback
             traceback.print_exc()
             return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying image metadata: {e}")
+
+def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
+    """Aplica EXATAMENTE os metadados do IMG_5975.MOV que funciona na trend"""
+    print(f"Applying EXACT metadata from IMG_5975.MOV to video {video_path}")
+    
+    # Metadados EXATOS extraídos do IMG_5975.MOV
+    exact_metadata_cmd = [
+        "exiftool", "-m", "-overwrite_original",
+        
+        # Metadados principais que fazem a trend funcionar
+        "-Keys:Copyright=Meta AI",
+        "-Keys:Model=2Q37S02H6H006X",  # Modelo EXATO do vídeo original
+        "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
+        "-Keys:GPSCoordinates=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
+        
+        # Datas exatas (usando atual, mas mantendo formato)
+        f"-Keys:CreationDate={datetime.now().strftime('%Y:%m:%d %H:%M:%SZ')}",
+        
+        # Metadados de QuickTime do original
+        "-QuickTime:MajorBrand=Apple QuickTime (.MOV/QT)",
+        "-QuickTime:MinorVersion=0.0.0",
+        "-QuickTime:CompatibleBrands=qt",
+        "-QuickTime:TimeScale=48000",
+        
+        # Metadados de Track específicos
+        "-Track1:HandlerType=Video Track",
+        "-Track1:HandlerVendorID=Apple", 
+        "-Track1:HandlerDescription=Core Media Video",
+        "-Track1:CompressorID=hvc1",
+        "-Track1:CompressorName='hvc1'",
+        "-Track1:XResolution=72",
+        "-Track1:YResolution=72",
+        "-Track1:BitDepth=24",
+        "-Track1:VideoFrameRate=30",
+        
+        # Metadados de Track2 (áudio)
+        "-Track2:HandlerType=Audio Track",
+        "-Track2:HandlerVendorID=Apple",
+        "-Track2:HandlerDescription=Core Media Data Handler",
+        "-Track2:AudioFormat=mp4a",
+        "-Track2:AudioChannels=2",
+        "-Track2:AudioBitsPerSample=16",
+        "-Track2:AudioSampleRate=48000",
+        "-Track2:MediaLanguageCode=und",
+        
+        # GPS específico
+        "-Composite:GPSLatitude=15 deg 47' 26.16\" S",
+        "-Composite:GPSLongitude=47 deg 53' 3.48\" W",
+        "-Composite:GPSPosition=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
+        
+        str(video_path)
+    ]
+    
+    print("Applying EXACT metadata from working video:")
+    print(f"Command: {' '.join(exact_metadata_cmd)}")
+    
+    # Executar o comando com os metadados exatos
+    exact_proc = subprocess.run(exact_metadata_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print(f"Exact metadata result: {exact_proc.returncode}")
+    if exact_proc.stderr:
+        print(f"Exact metadata stderr: {exact_proc.stderr}")
+    
+    # Se houve algum erro, tentar com apenas os metadados essenciais
+    if exact_proc.returncode != 0:
+        print("Error with complete metadata, trying essential metadata only")
+        
+        essential_cmd = [
+            "exiftool", "-m", "-overwrite_original",
+            "-Keys:Copyright=Meta AI",
+            "-Keys:Model=2Q37S02H6H006X",
+            "-Keys:Comment=app=Meta AI&device=Ray-Ban Meta Smart Glasses&id=31602281-4A5C-417D-A0F4-108B7FD05B0E",
+            "-Keys:GPSCoordinates=15 deg 47' 26.16\" S, 47 deg 53' 3.48\" W",
+            str(video_path)
+        ]
+        
+        print(f"Essential metadata command: {' '.join(essential_cmd)}")
+        essential_proc = subprocess.run(essential_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Essential metadata result: {essential_proc.returncode}")
+        if essential_proc.stderr:
+            print(f"Essential metadata stderr: {essential_proc.stderr}")
+        
+        return essential_proc
+    
+    return exact_proc
 
 def apply_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
     """Aplica metadados específicos para vídeos da trend baseado no arquivo IMG_5975.MOV"""
