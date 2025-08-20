@@ -4,6 +4,7 @@ import hashlib
 import subprocess
 from pathlib import Path
 from typing import Dict, Any, List, Callable
+from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session
 from werkzeug.utils import secure_filename
@@ -14,6 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 UPLOAD_DIR = PROJECT_ROOT / 'uploads'
 PROCESSED_DIR = PROJECT_ROOT / 'processed'
 TEMPLATES_DIR = PROJECT_ROOT / 'templates'
+USERS_FILE = PROJECT_ROOT / 'users.json'
 
 # Ensure directories exist
 for d in [UPLOAD_DIR, PROCESSED_DIR, TEMPLATES_DIR]:
@@ -36,10 +38,32 @@ else:
 	APP_PASSWORD_HASH = generate_password_hash('admin123')  # default for dev
 
 
+def load_users() -> Dict[str, Dict[str, Any]]:
+	if USERS_FILE.exists():
+		with open(USERS_FILE, 'r') as f:
+			return json.load(f)
+	return {}
+
+
+def save_users(users: Dict[str, Dict[str, Any]]) -> None:
+	with open(USERS_FILE, 'w') as f:
+		json.dump(users, f, indent=2)
+
+
 def login_required(fn: Callable) -> Callable:
 	def wrapper(*args, **kwargs):
 		if not session.get('auth'):  # not logged in
 			return redirect(url_for('login', next=request.path))
+		return fn(*args, **kwargs)
+	wrapper.__name__ = fn.__name__
+	return wrapper
+
+
+def admin_required(fn: Callable) -> Callable:
+	def wrapper(*args, **kwargs):
+		if not session.get('auth') or session.get('username') != APP_USER:
+			flash('Acesso negado')
+			return redirect(url_for('index'))
 		return fn(*args, **kwargs)
 	wrapper.__name__ = fn.__name__
 	return wrapper
@@ -153,16 +177,36 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any]) -> subprocess
 	return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
+def preserve_orientation(src: Path, dst: Path) -> subprocess.CompletedProcess:
+	# Copy original orientation to preserve it
+	args = ["exiftool", "-m", "-q", "-S", "-Orientation<Orientation", "-o", str(dst), str(src)]
+	return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
 @app.route('/login', methods=['GET', 'POST'])
 
 def login():
 	if request.method == 'POST':
 		username = request.form.get('username', '')
 		password = request.form.get('password', '')
+		
+		# Check admin first
 		if username == APP_USER and check_password_hash(APP_PASSWORD_HASH, password):
 			session['auth'] = True
+			session['username'] = username
+			session['is_admin'] = True
 			next_url = request.args.get('next') or url_for('index')
 			return redirect(next_url)
+		
+		# Check regular users
+		users = load_users()
+		if username in users and check_password_hash(users[username]['password'], password):
+			session['auth'] = True
+			session['username'] = username
+			session['is_admin'] = False
+			next_url = request.args.get('next') or url_for('index')
+			return redirect(next_url)
+		
 		flash('Credenciais inválidas')
 	return render_template('login.html')
 
@@ -170,8 +214,53 @@ def login():
 @app.route('/logout')
 
 def logout():
-	session.pop('auth', None)
+	session.clear()
 	return redirect(url_for('login'))
+
+
+@app.route('/admin', methods=['GET', 'POST'])
+@admin_required
+
+def admin():
+	if request.method == 'POST':
+		action = request.form.get('action')
+		if action == 'create_user':
+			username = request.form.get('username', '').strip()
+			password = request.form.get('password', '').strip()
+			
+			if not username or not password:
+				flash('Usuário e senha são obrigatórios')
+				return redirect(url_for('admin'))
+			
+			users = load_users()
+			if username in users:
+				flash('Usuário já existe')
+				return redirect(url_for('admin'))
+			
+			users[username] = {
+				'password': generate_password_hash(password),
+				'created_at': datetime.now().isoformat(),
+				'created_by': session.get('username', 'admin')
+			}
+			save_users(users)
+			flash(f'Usuário {username} criado com sucesso')
+			return redirect(url_for('admin'))
+		
+		elif action == 'delete_user':
+			username = request.form.get('username', '').strip()
+			if username == APP_USER:
+				flash('Não é possível deletar o admin')
+				return redirect(url_for('admin'))
+			
+			users = load_users()
+			if username in users:
+				del users[username]
+				save_users(users)
+				flash(f'Usuário {username} removido')
+			return redirect(url_for('admin'))
+	
+	users = load_users()
+	return render_template('admin.html', users=users)
 
 
 @app.route('/', methods=['GET'])
@@ -201,6 +290,10 @@ def upload():
 	processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
 	processed_path = PROCESSED_DIR / processed_name
 
+	# First preserve orientation
+	preserve_orientation(upload_path, processed_path)
+	
+	# Then apply trend metadata
 	write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
 	if write_proc.returncode != 0 or not processed_path.exists():
 		flash('Houve um imprevisto. Tente outra imagem.')

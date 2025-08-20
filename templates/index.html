@@ -24,9 +24,19 @@
 		button:hover { filter: brightness(1.05); }
 		.note { color: var(--muted); font-size: 0.92rem; margin-top: 8px; text-align: center; }
 		.alert { color: #fecaca; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
+		.admin-link { position: fixed; top: 16px; right: 16px; background: rgba(148,163,184,.1); border: 1px solid rgba(148,163,184,.2); color: var(--muted); padding: 8px 12px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; }
+		.admin-link:hover { background: rgba(148,163,184,.2); }
+		@media (max-width: 768px) {
+			body { padding: 12px; }
+			.card { padding: 16px; }
+			.admin-link { top: 12px; right: 12px; padding: 6px 10px; font-size: 0.85rem; }
+		}
 	</style>
 </head>
 <body>
+	{% if session.get('is_admin') %}
+		<a href="{{ url_for('admin') }}" class="admin-link">Admin</a>
+	{% endif %}
 	<div class="container">
 		<div class="header">
 			<h1>Entre na trend e potencialize seu alcance em até 10×</h1>

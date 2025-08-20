@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 	<title>Pronto!</title>
 	<style>
 		:root { --bg:#0f172a; --card:#0b1224; --muted:#94a3b8; --text:#e2e8f0; --accent:#7c3aed; --accent2:#06b6d4; }
@@ -15,6 +15,13 @@
 		.btn { display: inline-block; margin-top: 18px; background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; padding: 12px 18px; border: 0; border-radius: 12px; text-decoration: none; font-weight: 700; letter-spacing: .2px; }
 		.btn:hover { filter: brightness(1.05); }
 		.secondary { margin-left: 10px; background: transparent; border: 1px solid rgba(148,163,184,.3); color: var(--text); }
+		@media (max-width: 768px) {
+			body { padding: 16px; }
+			.card { padding: 24px; }
+			.h1 { font-size: 24px; }
+			.btn { display: block; margin: 12px 0 0; }
+			.secondary { margin-left: 0; }
+		}
 	</style>
 </head>
 <body>
