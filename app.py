@@ -514,22 +514,37 @@ def too_large(error):
     return redirect(url_for('index'))
 
 
-# Initialize database and create admin user
-try:
-    print("Initializing database...")
-    init_database()
-    
-    # Create admin user if it doesn't exist
-    if not get_user('admin'):
-        if create_user('admin', 'admin123', is_admin=True, created_by='system'):
-            print("Admin user created successfully")
-        else:
-            print("Failed to create admin user")
-    else:
-        print("Admin user already exists")
+def initialize_app():
+    """Initialize database and create admin user - called on first request"""
+    try:
+        print("Initializing database...")
+        init_database()
         
-except Exception as e:
-    print(f"Database initialization error: {e}")
+        # Create admin user if it doesn't exist
+        if not get_user('admin'):
+            if create_user('admin', 'admin123', is_admin=True, created_by='system'):
+                print("Admin user created successfully")
+            else:
+                print("Failed to create admin user")
+        else:
+            print("Admin user already exists")
+            
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+
+# Flag to track if initialization was done
+_app_initialized = False
+
+@app.before_request
+def before_first_request():
+    global _app_initialized
+    if not _app_initialized:
+        try:
+            initialize_app()
+            _app_initialized = True
+        except Exception as e:
+            print(f"Failed to initialize app: {e}")
+            # Continue anyway - app will work with limited functionality
 
 if __name__ == '__main__':
 	app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5173)), debug=True)
