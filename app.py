@@ -398,10 +398,45 @@ def build_exiftool_write_args(meta: Dict[str, Any]) -> List[str]:
 	return args
 
 def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-	args = ["exiftool", "-m", "-q", "-S"]
-	args.extend(build_exiftool_write_args(meta))
-	args.extend(["-o", str(dst), str(src)])
-	return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    """Aplica todos os metadados da trend usando exiftool"""
+    # Primeiro, copia o arquivo para preservar a estrutura original
+    import shutil
+    shutil.copy2(src, dst)
+    
+    # Aplica todos os metadados diretamente no arquivo
+    args = ["exiftool", "-m", "-q", "-overwrite_original"]
+    
+    # Adiciona todos os metadados EXIF
+    for key, (exif_tag, override_value) in EXIF_MAP.items():
+        value = override_value if override_value is not None else meta.get(key)
+        if value is not None:
+            args.append(f"-{exif_tag}={value}")
+    
+    # Adiciona todos os outros metadados como XMP
+    remaining = {}
+    for k, v in meta.items():
+        if k not in EXIF_MAP:
+            remaining[k] = v
+    
+    # Adiciona o JSON completo como XMP Description
+    desc_json = json.dumps(remaining, ensure_ascii=False)
+    args.append(f"-XMP-dc:Description={desc_json}")
+    
+    # Adiciona metadados específicos da trend que são críticos
+    args.extend([
+        f"-Make={meta.get('make', 'Meta View')}",
+        f"-Model={meta.get('model', 'Ray-Ban Meta Smart Glasses')}",
+        f"-GPSLatitude={meta.get('gps_latitude', '22 deg 58\' 46.24\" S')}",
+        f"-GPSLongitude={meta.get('gps_longitude', '43 deg 24\' 42.09\" W')}",
+        f"-GPSLatitudeRef={meta.get('gps_latitude_ref', 'South')}",
+        f"-GPSLongitudeRef={meta.get('gps_longitude_ref', 'West')}"
+    ])
+    
+    # Aplica no arquivo de destino
+    args.append(str(dst))
+    
+    print(f"Applying metadata with command: {' '.join(args)}")
+    return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 @app.route('/mysql-status')
 def mysql_status():
@@ -682,25 +717,43 @@ def upload():
             flash('Erro ao salvar arquivo')
             return redirect(url_for('index'))
 
-        # Simple approach - just copy with new name and apply metadata
-        import shutil
+        # Prepare output filename
         processed_name = f"{upload_path.stem}-trend{upload_path.suffix or '.heic'}"
         processed_path = PROCESSED_DIR / processed_name
         
-        # Copy the file first
-        shutil.copy2(upload_path, processed_path)
-        
-        # Try to apply metadata, but don't fail if it doesn't work
+        # Apply metadata with improved function (includes copying the file)
         try:
+            print(f"Applying trend metadata to {upload_path}")
             write_proc = run_exiftool_write(upload_path, processed_path, TREND_META)
+            
             if write_proc.returncode != 0:
                 print(f"ExifTool warning: {write_proc.stderr}")
+                flash('Metadados aplicados parcialmente')
+            else:
+                print("Metadata applied successfully")
         except Exception as e:
-            print(f"ExifTool error (non-critical): {e}")
+            print(f"ExifTool error: {e}")
+            import traceback
+            traceback.print_exc()
+            flash('Erro ao aplicar metadados, mas o arquivo foi processado')
         
+        # Verify the processed file exists
         if not processed_path.exists():
             flash('Erro ao processar arquivo')
             return redirect(url_for('index'))
+            
+        # Verify metadata was applied
+        try:
+            verify_proc = subprocess.run(
+                ["exiftool", "-json", str(processed_path)], 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                text=True
+            )
+            if verify_proc.returncode == 0:
+                print(f"Metadata verification: {verify_proc.stdout[:100]}...")
+        except Exception as e:
+            print(f"Metadata verification error: {e}")
 
         return render_template('result.html', processed_filename=processed_name)
         
