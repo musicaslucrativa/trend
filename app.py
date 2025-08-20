@@ -3,12 +3,20 @@ import json
 import hashlib
 import subprocess
 from pathlib import Path
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional
 from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
+
+# Try to import MySQL, but don't fail if not available
+try:
+    import pymysql
+    MYSQL_AVAILABLE = True
+except ImportError:
+    MYSQL_AVAILABLE = False
+    print("MySQL not available, using simple mode")
 
 # Base directories
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -32,6 +40,127 @@ USERS = {
         'is_admin': True
     }
 }
+
+# MySQL Configuration (only if available)
+if MYSQL_AVAILABLE:
+    DB_CONFIG = {
+        'host': 'srv1330.hstgr.io',
+        'user': 'u733147707_trend',
+        'password': '0EgZk/GkTb*',
+        'database': 'u733147707_trend',
+        'charset': 'utf8mb4',
+        'autocommit': True
+    }
+    
+    _mysql_initialized = False
+    
+    def init_mysql():
+        """Initialize MySQL safely"""
+        global _mysql_initialized
+        if _mysql_initialized:
+            return True
+            
+        try:
+            conn = pymysql.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            
+            # Create users table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    is_admin BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by VARCHAR(50),
+                    INDEX idx_username (username)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ''')
+            
+            # Create admin user if not exists
+            cursor.execute('SELECT COUNT(*) FROM users WHERE username = %s', ('admin',))
+            if cursor.fetchone()[0] == 0:
+                cursor.execute('''
+                    INSERT INTO users (username, password_hash, is_admin, created_by)
+                    VALUES (%s, %s, %s, %s)
+                ''', ('admin', generate_password_hash('admin123'), True, 'system'))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            _mysql_initialized = True
+            print("MySQL initialized successfully")
+            return True
+            
+        except Exception as e:
+            print(f"MySQL initialization failed: {e}")
+            return False
+    
+    def get_mysql_user(username: str) -> Optional[Dict[str, Any]]:
+        """Get user from MySQL"""
+        try:
+            if not init_mysql():
+                return None
+                
+            conn = pymysql.connect(**DB_CONFIG)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            
+            cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+            user = cursor.fetchone()
+            
+            cursor.close()
+            conn.close()
+            return user
+            
+        except Exception as e:
+            print(f"Error getting MySQL user {username}: {e}")
+            return None
+    
+    def create_mysql_user(username: str, password: str, is_admin: bool = False, created_by: str = 'admin') -> bool:
+        """Create user in MySQL"""
+        try:
+            if not init_mysql():
+                return False
+                
+            conn = pymysql.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            
+            password_hash = generate_password_hash(password)
+            
+            cursor.execute('''
+                INSERT INTO users (username, password_hash, is_admin, created_by)
+                VALUES (%s, %s, %s, %s)
+            ''', (username, password_hash, is_admin, created_by))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True
+            
+        except Exception as e:
+            print(f"Error creating MySQL user {username}: {e}")
+            return False
+    
+    def get_all_mysql_users() -> List[Dict[str, Any]]:
+        """Get all users from MySQL"""
+        try:
+            if not init_mysql():
+                return []
+                
+            conn = pymysql.connect(**DB_CONFIG)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            
+            cursor.execute('SELECT * FROM users ORDER BY created_at DESC')
+            users = cursor.fetchall()
+            
+            cursor.close()
+            conn.close()
+            return users
+            
+        except Exception as e:
+            print(f"Error getting MySQL users: {e}")
+            return []
 
 def login_required(fn: Callable) -> Callable:
 	def wrapper(*args, **kwargs):
@@ -167,10 +296,19 @@ def health_check():
         upload_ok = UPLOAD_DIR.exists() and os.access(UPLOAD_DIR, os.W_OK)
         processed_ok = PROCESSED_DIR.exists() and os.access(PROCESSED_DIR, os.W_OK)
         
+        mysql_status = False
+        if MYSQL_AVAILABLE:
+            try:
+                mysql_status = init_mysql()
+            except:
+                pass
+        
         return {
             'status': 'ok',
-            'version': 'simple',
+            'version': 'hybrid-safe',
             'exiftool': exiftool_ok,
+            'mysql_available': MYSQL_AVAILABLE,
+            'mysql_connected': mysql_status,
             'upload_dir': upload_ok,
             'processed_dir': processed_ok,
             'exiftool_version': result.stdout.strip() if exiftool_ok else 'not found'
@@ -189,15 +327,29 @@ def login():
                 flash('Usuário e senha são obrigatórios')
                 return redirect(url_for('login'))
             
-            # Check hardcoded users
-            if username in USERS:
+            # Try MySQL first, then fallback to hardcoded
+            user_found = False
+            is_admin = False
+            
+            if MYSQL_AVAILABLE:
+                mysql_user = get_mysql_user(username)
+                if mysql_user and check_password_hash(mysql_user['password_hash'], password):
+                    user_found = True
+                    is_admin = mysql_user['is_admin']
+            
+            # Fallback to hardcoded users
+            if not user_found and username in USERS:
                 user = USERS[username]
                 if check_password_hash(user['password_hash'], password):
-                    session['auth'] = True
-                    session['username'] = username
-                    session['is_admin'] = user.get('is_admin', False)
-                    next_url = request.args.get('next') or url_for('index')
-                    return redirect(next_url)
+                    user_found = True
+                    is_admin = user.get('is_admin', False)
+            
+            if user_found:
+                session['auth'] = True
+                session['username'] = username
+                session['is_admin'] = is_admin
+                next_url = request.args.get('next') or url_for('index')
+                return redirect(next_url)
             
             flash('Credenciais inválidas')
             return redirect(url_for('login'))
@@ -218,20 +370,41 @@ def logout():
 @admin_required
 def admin():
 	if request.method == 'POST':
-		flash('Funcionalidade de criação de usuários será implementada em breve')
+		if MYSQL_AVAILABLE:
+			action = request.form.get('action')
+			if action == 'create_user':
+				username = request.form.get('username', '').strip()
+				password = request.form.get('password', '').strip()
+				
+				if not username or not password:
+					flash('Usuário e senha são obrigatórios')
+					return redirect(url_for('admin'))
+				
+				if create_mysql_user(username, password, is_admin=False, created_by=session.get('username', 'admin')):
+					flash(f'Usuário {username} criado com sucesso')
+				else:
+					flash('Usuário já existe ou erro ao criar')
+				return redirect(url_for('admin'))
+		else:
+			flash('MySQL não disponível. Apenas funcionalidade básica.')
 		return redirect(url_for('admin'))
 	
-	# Show only hardcoded users for now
-	users_list = []
-	for username, user_data in USERS.items():
-		users_list.append({
-			'username': username,
-			'is_admin': user_data.get('is_admin', False),
-			'created_at': datetime.now(),
-			'created_by': 'system'
-		})
+	# Get users from MySQL if available, otherwise show hardcoded
+	if MYSQL_AVAILABLE:
+		users_list = get_all_mysql_users()
+		mysql_status = "Conectado"
+	else:
+		users_list = []
+		for username, user_data in USERS.items():
+			users_list.append({
+				'username': username,
+				'is_admin': user_data.get('is_admin', False),
+				'created_at': datetime.now(),
+				'created_by': 'system'
+			})
+		mysql_status = "Não disponível"
 	
-	return render_template('admin.html', users=users_list)
+	return render_template('admin.html', users=users_list, mysql_status=mysql_status)
 
 @app.route('/', methods=['GET'])
 @login_required
