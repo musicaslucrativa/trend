@@ -8,7 +8,7 @@ from typing import Dict, Any, List
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
 
 # Base directories
-PROJECT_ROOT = Path('/Users/kay/Desktop/raspadinha').resolve()
+PROJECT_ROOT = Path(__file__).resolve().parent
 UPLOAD_DIR = PROJECT_ROOT / 'uploads'
 PROCESSED_DIR = PROJECT_ROOT / 'processed'
 TEMPLATES_DIR = PROJECT_ROOT / 'templates'
@@ -18,7 +18,7 @@ for d in [UPLOAD_DIR, PROCESSED_DIR, TEMPLATES_DIR]:
 	os.makedirs(d, exist_ok=True)
 
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR))
-app.secret_key = 'replace-this-with-a-random-secret'
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret')
 
 # Metadata for the trend
 TREND_META: Dict[str, Any] = {
@@ -167,4 +167,4 @@ def download(filename: str):
 
 
 if __name__ == '__main__':
-	app.run(host='127.0.0.1', port=5173, debug=True)
+	app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5173)), debug=True)
