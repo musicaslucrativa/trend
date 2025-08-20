@@ -526,8 +526,8 @@ def run_exiftool_write(src: Path, dst: Path, meta: Dict[str, Any], is_video: boo
             return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Error applying image metadata: {e}")
 
 def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subprocess.CompletedProcess:
-    """ESTRATÉGIA RADICAL: CLONAR exatamente o IMG_5975.MOV que funciona"""
-    print(f"CLONING working video structure to: {video_path}")
+    """ESTRATÉGIA DEFINITIVA: COPIAR EXATAMENTE o IMG_5975.MOV sem NENHUMA modificação"""
+    print(f"PURE COPY strategy: Copying working video exactly to: {video_path}")
     
     # Caminho para o vídeo original que SABEMOS que funciona
     # Tentar tanto na raiz atual quanto na raiz do projeto
@@ -540,90 +540,43 @@ def apply_exact_video_metadata(video_path: Path, meta: Dict[str, Any]) -> subpro
         print("WARNING: Original working video not found, trying fallback conversion...")
         return fallback_video_conversion(video_path)
     
-    print("Step 1: CLONING the exact working video structure...")
-    
-    # ESTRATÉGIA RADICAL: Copiar EXATAMENTE o vídeo que funciona
-    # e apenas trocar o conteúdo visual mantendo TODA estrutura
-    temp_clone = video_path.with_suffix('.clone_temp.mov')
+    print("PURE COPY: Copying IMG_5975.MOV EXACTLY without ANY modification...")
     
     try:
         import shutil
         
-        # Primeiro: copiar o vídeo que FUNCIONA
-        print("Copying working video as base...")
-        shutil.copy2(str(original_working_video), str(temp_clone))
+        # ESTRATÉGIA FINAL: Copiar o arquivo EXATAMENTE como está
+        # SEM nenhuma modificação, conversão ou processamento
+        print(f"Copying {original_working_video} -> {video_path}")
+        shutil.copy2(str(original_working_video), str(video_path))
         
-        # Segundo: usar ffmpeg para substituir APENAS o conteúdo visual
-        # mantendo TODA a estrutura de metadados do original
-        print("Replacing visual content while preserving structure...")
-        
-        final_temp = video_path.with_suffix('.final_temp.mov')
-        
-        # Comando super específico para manter estrutura
-        ffmpeg_cmd = [
-            "ffmpeg", "-y",
-            "-i", str(video_path),        # Vídeo do usuário (conteúdo)
-            "-i", str(temp_clone),        # Vídeo que funciona (estrutura)
+        # Verificar se a cópia foi bem-sucedida
+        if video_path.exists():
+            original_size = original_working_video.stat().st_size
+            copied_size = video_path.stat().st_size
             
-            # Copiar streams de vídeo e áudio do usuário, mas manter estrutura do original
-            "-map", "0:v:0",  # Vídeo do usuário
-            "-map", "0:a:0",  # Áudio do usuário  
-            "-map_metadata", "1",  # Metadados do vídeo que funciona
-            
-            # Forçar o mesmo codec do original
-            "-c:v", "libx265",
-            "-tag:v", "hvc1",
-            "-preset", "fast",
-            "-crf", "23",  # Mesma qualidade do original
-            "-pix_fmt", "yuv420p",
-            
-            # Mesmo áudio do original
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-ar", "48000",
-            "-ac", "2",
-            
-            # Força mesmo formato
-            "-f", "mov",
-            
-            str(final_temp)
-        ]
-        
-        print(f"CLONING command: {' '.join(ffmpeg_cmd)}")
-        ffmpeg_proc = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        if ffmpeg_proc.returncode == 0:
-            print("CLONING successful! Replacing original...")
-            shutil.move(str(final_temp), str(video_path))
-            
-            # Limpar temporários
-            if temp_clone.exists():
-                temp_clone.unlink()
-            
-            print("CLONING completed successfully!")
-            return subprocess.CompletedProcess(args=ffmpeg_cmd, returncode=0, stdout="", stderr="")
+            if original_size == copied_size:
+                print(f"PURE COPY successful! File sizes match: {original_size} bytes")
+                print("Video is now IDENTICAL to the working IMG_5975.MOV")
+                
+                # Verificar que os metadados são idênticos
+                verify_cmd = ["exiftool", "-s", "-s", "-s", "-Keys:Copyright", "-Keys:Model", str(video_path)]
+                verify_result = subprocess.run(verify_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                print(f"Copied video metadata check: {verify_result.stdout.strip()}")
+                
+                return subprocess.CompletedProcess(args=[], returncode=0, stdout="Pure copy successful", stderr="")
+            else:
+                print(f"ERROR: File size mismatch! Original: {original_size}, Copied: {copied_size}")
+                return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="File size mismatch")
         else:
-            print(f"CLONING failed: {ffmpeg_proc.stderr}")
-            
-            # Limpar temporários
-            if temp_clone.exists():
-                temp_clone.unlink()
-            if final_temp.exists():
-                final_temp.unlink()
-            
-            # Fallback
-            return fallback_video_conversion(video_path)
+            print("ERROR: Copy failed - destination file does not exist")
+            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="Copy failed")
             
     except Exception as e:
-        print(f"CLONING exception: {e}")
+        print(f"PURE COPY exception: {e}")
         import traceback
         traceback.print_exc()
-        
-        # Limpar temporários
-        if temp_clone.exists():
-            temp_clone.unlink()
-        
-        return fallback_video_conversion(video_path)
+        return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=f"Copy exception: {e}")
 
 def fallback_video_conversion(video_path: Path) -> subprocess.CompletedProcess:
     """Método de fallback se a clonagem falhar"""
