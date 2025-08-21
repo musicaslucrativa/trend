@@ -405,7 +405,7 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="instagram" class="form-label">Instagram</label>
+                        <label for="instagram" class="form-label required">Instagram</label>
                         <input 
                             type="text" 
                             id="instagram" 
@@ -413,12 +413,13 @@
                             class="form-input" 
                             placeholder="@seuinstagram"
                             autocomplete="off"
+                            required
                         >
-                        <div class="input-hint">Opcional - sem o @</div>
+                        <div class="input-hint">Seu perfil do Instagram</div>
                     </div>
 
                     <div class="form-group">
-                        <label for="whatsapp" class="form-label">WhatsApp</label>
+                        <label for="whatsapp" class="form-label required">WhatsApp</label>
                         <input 
                             type="tel" 
                             id="whatsapp" 
@@ -426,8 +427,9 @@
                             class="form-input" 
                             placeholder="(11) 99999-9999"
                             autocomplete="tel"
+                            required
                         >
-                        <div class="input-hint">Opcional - apenas números</div>
+                        <div class="input-hint">Seu número de WhatsApp</div>
                     </div>
                 </div>
 
@@ -479,16 +481,23 @@
             }
         });
         
-        // Formatação de Instagram
+        // Validação e formatação de Instagram
         instagram.addEventListener('input', function() {
             let value = this.value.replace(/[^a-zA-Z0-9._]/g, '');
             if (value && !value.startsWith('@')) {
                 value = '@' + value;
             }
             this.value = value;
+            
+            // Validação
+            if (value.length >= 2) { // @ + pelo menos 1 caractere
+                this.classList.remove('error');
+            } else {
+                this.classList.add('error');
+            }
         });
         
-        // Formatação de WhatsApp
+        // Validação e formatação de WhatsApp
         whatsapp.addEventListener('input', function() {
             let value = this.value.replace(/\D/g, '');
             if (value.length > 11) value = value.slice(0, 11);
@@ -504,6 +513,14 @@
             }
             
             this.value = value;
+            
+            // Validação - precisa ter pelo menos 10 dígitos
+            const numbersOnly = value.replace(/\D/g, '');
+            if (numbersOnly.length >= 10) {
+                this.classList.remove('error');
+            } else {
+                this.classList.add('error');
+            }
         });
         
         // Animação suave no submit

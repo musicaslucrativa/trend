@@ -93,8 +93,8 @@ if MYSQL_AVAILABLE:
                         username VARCHAR(50) UNIQUE NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
                         email VARCHAR(255) UNIQUE NOT NULL,
-                        instagram VARCHAR(100),
-                        whatsapp VARCHAR(20),
+                        instagram VARCHAR(100) NOT NULL,
+                        whatsapp VARCHAR(20) NOT NULL,
                         is_admin BOOLEAN DEFAULT FALSE,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         created_by VARCHAR(50),
@@ -145,9 +145,9 @@ if MYSQL_AVAILABLE:
                 try:
                     admin_hash = generate_password_hash('admin123')
                     cursor.execute('''
-                        INSERT INTO users (username, password_hash, email, is_admin, created_by)
-                        VALUES (%s, %s, %s, %s, %s)
-                    ''', ('admin', admin_hash, 'admin@trendapp.com', True, 'system'))
+                        INSERT INTO users (username, password_hash, email, instagram, whatsapp, is_admin, created_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ''', ('admin', admin_hash, 'admin@trendapp.com', '@admin', '11999999999', True, 'system'))
                     print("Admin user created")
                 except Exception as user_error:
                     print(f"Error creating admin: {user_error}")
@@ -160,9 +160,9 @@ if MYSQL_AVAILABLE:
                 try:
                     freitas_hash = generate_password_hash('diferentona157')
                     cursor.execute('''
-                        INSERT INTO users (username, password_hash, email, is_admin, created_by)
-                        VALUES (%s, %s, %s, %s, %s)
-                    ''', ('freitas', freitas_hash, 'freitas@trendapp.com', True, 'system'))
+                        INSERT INTO users (username, password_hash, email, instagram, whatsapp, is_admin, created_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ''', ('freitas', freitas_hash, 'freitas@trendapp.com', '@freitas', '11888888888', True, 'system'))
                     print("Freitas user created")
                 except Exception as freitas_error:
                     print(f"Error creating freitas: {freitas_error}")
@@ -1061,16 +1061,24 @@ def register():
             flash('Email inválido')
             return render_template('register.html')
             
-        # Validar Instagram (deve começar com @)
-        if instagram and not instagram.startswith('@'):
+        # Validar Instagram (obrigatório, deve começar com @)
+        if not instagram:
+            flash('Instagram é obrigatório')
+            return render_template('register.html')
+        if not instagram.startswith('@'):
             instagram = '@' + instagram
+        if len(instagram) < 2:  # @ + pelo menos 1 caractere
+            flash('Instagram deve ter pelo menos 1 caractere após o @')
+            return render_template('register.html')
             
-        # Validar WhatsApp (apenas números)
-        if whatsapp:
-            whatsapp = ''.join(filter(str.isdigit, whatsapp))
-            if len(whatsapp) < 10:
-                flash('WhatsApp deve ter pelo menos 10 dígitos')
-                return render_template('register.html')
+        # Validar WhatsApp (obrigatório, apenas números)
+        if not whatsapp:
+            flash('WhatsApp é obrigatório')
+            return render_template('register.html')
+        whatsapp = ''.join(filter(str.isdigit, whatsapp))
+        if len(whatsapp) < 10:
+            flash('WhatsApp deve ter pelo menos 10 dígitos')
+            return render_template('register.html')
         
         # Tentar criar usuário
         try:
@@ -1172,7 +1180,7 @@ def admin():
 					flash('Usuário e senha são obrigatórios')
 					return redirect(url_for('admin'))
 				
-				if create_mysql_user(username, password, f"{username}@temp.com", None, None, is_admin=is_admin, created_by=session.get('username', 'admin')):
+				if create_mysql_user(username, password, f"{username}@temp.com", f"@{username}", "11000000000", is_admin=is_admin, created_by=session.get('username', 'admin')):
 					flash(f'Usuário {username} criado com sucesso')
 				else:
 					flash('Usuário já existe ou erro ao criar')
