@@ -217,6 +217,21 @@
             margin-right: 4px;
         }
 
+        .login-link {
+            display: block;
+            text-align: center;
+            color: #10b981;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .login-link:hover {
+            color: #059669;
+            transform: translateY(-1px);
+        }
+
         /* Animações */
         @keyframes fadeInUp {
             from {
@@ -313,6 +328,7 @@
 
                 <button type="submit" class="btn">Entrar</button>
                 
+                <a href="{{ url_for('register') }}" class="login-link">Não tem conta? Cadastre-se grátis</a>
                 <a href="{{ url_for('index') }}" class="back-link">Voltar ao início</a>
             </form>
         </div>

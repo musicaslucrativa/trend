@@ -1,0 +1,133 @@
+[ExifTool]      ExifToolVersion                 : 13.30
+[File]          FileName                        : IMG_5975.MOV
+[File]          Directory                       : .
+[File]          FileSize                        : 4.6 MB
+[File]          FileModifyDate                  : 2025:08:20 19:10:53-03:00
+[File]          FileAccessDate                  : 2025:08:20 19:10:53-03:00
+[File]          FileInodeChangeDate             : 2025:08:20 19:10:53-03:00
+[File]          FilePermissions                 : -rw-r--r--
+[File]          FileType                        : MOV
+[File]          FileTypeExtension               : mov
+[File]          MIMEType                        : video/quicktime
+[QuickTime]     MajorBrand                      : Apple QuickTime (.MOV/QT)
+[QuickTime]     MinorVersion                    : 0.0.0
+[QuickTime]     CompatibleBrands                : qt
+[QuickTime]     Wide                            : (Binary data 0 bytes, use -b option to extract)
+[QuickTime]     MediaDataSize                   : 4624459
+[QuickTime]     MediaDataOffset                 : 36
+[QuickTime]     MediaData                       : (Binary data 4624459 bytes, use -b option to extract)
+[QuickTime]     MovieHeaderVersion              : 0
+[QuickTime]     CreateDate                      : 2025:08:20 19:56:51
+[QuickTime]     ModifyDate                      : 2025:08:20 19:56:51
+[QuickTime]     TimeScale                       : 48000
+[QuickTime]     Duration                        : 2.30 s
+[QuickTime]     PreferredRate                   : 1
+[QuickTime]     PreferredVolume                 : 100.00%
+[QuickTime]     MatrixStructure                 : 1 0 0 0 1 0 0 0 1
+[QuickTime]     PreviewTime                     : 0 s
+[QuickTime]     PreviewDuration                 : 0 s
+[QuickTime]     PosterTime                      : 0 s
+[QuickTime]     SelectionTime                   : 0 s
+[QuickTime]     SelectionDuration               : 0 s
+[QuickTime]     CurrentTime                     : 0 s
+[QuickTime]     NextTrackID                     : 3
+[QuickTime]     TrackHeaderVersion              : 0
+[QuickTime]     TrackCreateDate                 : 2025:08:20 19:56:51
+[QuickTime]     TrackModifyDate                 : 2025:08:20 19:56:51
+[QuickTime]     TrackID                         : 1
+[QuickTime]     TrackDuration                   : 2.30 s
+[QuickTime]     TrackLayer                      : 0
+[QuickTime]     TrackVolume                     : 0.00%
+[QuickTime]     MatrixStructure                 : 1 0 0 0 1 0 0 0 1
+[QuickTime]     ImageWidth                      : 1472
+[QuickTime]     ImageHeight                     : 1968
+[QuickTime]     CleanApertureDimensions         : 1472x1968
+[QuickTime]     ProductionApertureDimensions    : 1472x1968
+[QuickTime]     EncodedPixelsDimensions         : 1472x1968
+[QuickTime]     Unknown_edts                    : (Binary data 28 bytes, use -b option to extract)
+[QuickTime]     MediaHeaderVersion              : 0
+[QuickTime]     MediaCreateDate                 : 2025:08:20 19:56:51
+[QuickTime]     MediaModifyDate                 : 2025:08:20 19:56:51
+[QuickTime]     MediaTimeScale                  : 600
+[QuickTime]     MediaDuration                   : 2.30 s
+[QuickTime]     MediaLanguageCode               : und
+[QuickTime]     HandlerClass                    : Media Handler
+[QuickTime]     HandlerType                     : Video Track
+[QuickTime]     HandlerVendorID                 : Apple
+[QuickTime]     HandlerDescription              : Core Media Video
+[QuickTime]     GraphicsMode                    : ditherCopy
+[QuickTime]     OpColor                         : 32768 32768 32768
+[QuickTime]     HandlerClass                    : Data Handler
+[QuickTime]     HandlerType                     : Alias Data
+[QuickTime]     HandlerVendorID                 : Apple
+[QuickTime]     HandlerDescription              : Core Media Data Handler
+[QuickTime]     Unknown_alis                    : (Binary data 4 bytes, use -b option to extract)
+[QuickTime]     CompressorID                    : hvc1
+[QuickTime]     SourceImageWidth                : 1472
+[QuickTime]     SourceImageHeight               : 1968
+[QuickTime]     XResolution                     : 72
+[QuickTime]     YResolution                     : 72
+[QuickTime]     CompressorName                  : 'hvc1'
+[QuickTime]     BitDepth                        : 24
+[QuickTime]     SampleGroupDescription          : (Binary data 18 bytes, use -b option to extract)
+[QuickTime]     SampleToGroup                   : (Binary data 60 bytes, use -b option to extract)
+[QuickTime]     VideoFrameRate                  : 30
+[QuickTime]     CompositionTimeToSample         : (Binary data 560 bytes, use -b option to extract)
+[QuickTime]     CompositionToDecodeTimelineMapping: (Binary data 24 bytes, use -b option to extract)
+[QuickTime]     SyncSampleTable                 : (Binary data 20 bytes, use -b option to extract)
+[QuickTime]     IdependentAndDisposableSamples  : (Binary data 73 bytes, use -b option to extract)
+[QuickTime]     SampleToChunk                   : (Binary data 80 bytes, use -b option to extract)
+[QuickTime]     SampleSizes                     : (Binary data 288 bytes, use -b option to extract)
+[QuickTime]     ChunkOffset                     : (Binary data 32 bytes, use -b option to extract)
+[QuickTime]     TrackHeaderVersion              : 0
+[QuickTime]     TrackCreateDate                 : 2025:08:20 19:56:51
+[QuickTime]     TrackModifyDate                 : 2025:08:20 19:56:51
+[QuickTime]     TrackID                         : 2
+[QuickTime]     TrackDuration                   : 2.25 s
+[QuickTime]     TrackLayer                      : 0
+[QuickTime]     TrackVolume                     : 100.00%
+[QuickTime]     MatrixStructure                 : 1 0 0 0 1 0 0 0 1
+[QuickTime]     Unknown_edts                    : (Binary data 28 bytes, use -b option to extract)
+[QuickTime]     MediaHeaderVersion              : 0
+[QuickTime]     MediaCreateDate                 : 2025:08:20 19:56:51
+[QuickTime]     MediaModifyDate                 : 2025:08:20 19:56:51
+[QuickTime]     MediaTimeScale                  : 48000
+[QuickTime]     MediaDuration                   : 2.30 s
+[QuickTime]     MediaLanguageCode               : und
+[QuickTime]     HandlerClass                    : Media Handler
+[QuickTime]     HandlerType                     : Audio Track
+[QuickTime]     HandlerVendorID                 : Apple
+[QuickTime]     HandlerDescription              : Core Media Audio
+[QuickTime]     Balance                         : 0
+[QuickTime]     HandlerClass                    : Data Handler
+[QuickTime]     HandlerType                     : Alias Data
+[QuickTime]     HandlerVendorID                 : Apple
+[QuickTime]     HandlerDescription              : Core Media Data Handler
+[QuickTime]     Unknown_alis                    : (Binary data 4 bytes, use -b option to extract)
+[QuickTime]     AudioFormat                     : mp4a
+[QuickTime]     AudioChannels                   : 2
+[QuickTime]     AudioBitsPerSample              : 16
+[QuickTime]     AudioSampleRate                 : 48000
+[QuickTime]     PurchaseFileFormat              : mp4a
+[QuickTime]     Unknown_mp4a                    : 
+[QuickTime]     Unknown_esds                    : (Binary data 43 bytes, use -b option to extract)
+[QuickTime]     SampleGroupDescription          : (Binary data 18 bytes, use -b option to extract)
+[QuickTime]     SampleToGroup                   : (Binary data 20 bytes, use -b option to extract)
+[QuickTime]     TimeToSampleTable               : (Binary data 16 bytes, use -b option to extract)
+[QuickTime]     SampleToChunk                   : (Binary data 44 bytes, use -b option to extract)
+[QuickTime]     SampleSizes                     : (Binary data 444 bytes, use -b option to extract)
+[QuickTime]     ChunkOffset                     : (Binary data 24 bytes, use -b option to extract)
+[QuickTime]     HandlerType                     : Metadata Tags
+[QuickTime]     Copyright                       : Meta AI
+[QuickTime]     GPSCoordinates                  : 15 deg 47' 26.16" S, 47 deg 53' 3.48" W
+[QuickTime]     Comment                         : (Binary data 85 bytes, use -b option to extract)
+[QuickTime]     Model                           : Ray-Ban Meta Smart Glasses
+[QuickTime]     Model                           : 2Q37S02H6H006X
+[QuickTime]     CreationDate                    : 2025:08:20 17:35:38Z
+[Composite]     ImageSize                       : 1472x1968
+[Composite]     Megapixels                      : 2.9
+[Composite]     AvgBitrate                      : 16.1 Mbps
+[Composite]     GPSLatitude                     : 15 deg 47' 26.16" S
+[Composite]     GPSLongitude                    : 47 deg 53' 3.48" W
+[Composite]     Rotation                        : 0
+[Composite]     GPSPosition                     : 15 deg 47' 26.16" S, 47 deg 53' 3.48" W

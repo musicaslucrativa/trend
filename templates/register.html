@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Trend App - Cadastro Gratuito</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .register-container {
+            max-width: 500px;
+            width: 100%;
+            margin: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 36px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .register-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff 0%, #a8edea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .register-header p {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+        }
+
+        .register-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #1a1a2e;
+            position: relative;
+        }
+
+        .register-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        }
+
+        .alert {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-weight: 500;
+            border: none;
+            box-shadow: 0 4px 12px rgba(238, 90, 36, 0.3);
+            text-align: center;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-label.required::after {
+            content: ' *';
+            color: #ef4444;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            background: #f9fafb;
+            color: #374151;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #10b981;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .form-input.error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .form-input.error:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .input-hint {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .login-link {
+            display: block;
+            text-align: center;
+            color: #10b981;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .login-link:hover {
+            color: #059669;
+            transform: translateY(-1px);
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #374151;
+            transform: translateY(-1px);
+        }
+
+        .back-link::before {
+            content: '← ';
+            margin-right: 4px;
+        }
+
+        /* Validação visual */
+        .validation-check {
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 12px;
+        }
+
+        .valid {
+            color: #10b981;
+        }
+
+        .invalid {
+            color: #ef4444;
+        }
+
+        /* Animações */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .register-container {
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .register-card {
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .register-container {
+                margin: 0 16px;
+            }
+
+            .register-card {
+                padding: 24px;
+            }
+
+            .register-header h1 {
+                font-size: 28px;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Estados de foco para acessibilidade */
+        .form-input:focus,
+        .btn:focus,
+        .login-link:focus,
+        .back-link:focus {
+            outline: 2px solid #10b981;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <div class="logo">🚀</div>
+            <h1>Cadastro Gratuito</h1>
+            <p>Crie sua conta e comece a viralizar agora</p>
+        </div>
+
+        <div class="register-card">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        {% if 'sucesso' in message %}
+                            <div class="alert alert-success">{{ message }}</div>
+                        {% else %}
+                            <div class="alert">{{ message }}</div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" id="registerForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="username" class="form-label required">Usuário</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            class="form-input" 
+                            placeholder="Seu nome de usuário"
+                            required
+                            autocomplete="username"
+                            minlength="3"
+                        >
+                        <div class="input-hint">Mínimo 3 caracteres</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label required">Senha</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            placeholder="Sua senha"
+                            required
+                            autocomplete="new-password"
+                            minlength="6"
+                        >
+                        <div class="input-hint">Mínimo 6 caracteres</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email" class="form-label required">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="form-input" 
+                        placeholder="seu@email.com"
+                        required
+                        autocomplete="email"
+                    >
+                    <div class="input-hint">Para recuperação de senha</div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="instagram" class="form-label">Instagram</label>
+                        <input 
+                            type="text" 
+                            id="instagram" 
+                            name="instagram" 
+                            class="form-input" 
+                            placeholder="@seuinstagram"
+                            autocomplete="off"
+                        >
+                        <div class="input-hint">Opcional - sem o @</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="whatsapp" class="form-label">WhatsApp</label>
+                        <input 
+                            type="tel" 
+                            id="whatsapp" 
+                            name="whatsapp" 
+                            class="form-input" 
+                            placeholder="(11) 99999-9999"
+                            autocomplete="tel"
+                        >
+                        <div class="input-hint">Opcional - apenas números</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Criar Conta Gratuita</button>
+                
+                <a href="{{ url_for('login') }}" class="login-link">Já tem conta? Faça login</a>
+                <a href="{{ url_for('index') }}" class="back-link">Voltar ao início</a>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus no primeiro campo
+        document.getElementById('username').focus();
+        
+        // Validação em tempo real
+        const form = document.getElementById('registerForm');
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const email = document.getElementById('email');
+        const instagram = document.getElementById('instagram');
+        const whatsapp = document.getElementById('whatsapp');
+        
+        // Validação de username
+        username.addEventListener('input', function() {
+            if (this.value.length >= 3) {
+                this.classList.remove('error');
+            } else {
+                this.classList.add('error');
+            }
+        });
+        
+        // Validação de senha
+        password.addEventListener('input', function() {
+            if (this.value.length >= 6) {
+                this.classList.remove('error');
+            } else {
+                this.classList.add('error');
+            }
+        });
+        
+        // Validação de email
+        email.addEventListener('input', function() {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (emailRegex.test(this.value)) {
+                this.classList.remove('error');
+            } else {
+                this.classList.add('error');
+            }
+        });
+        
+        // Formatação de Instagram
+        instagram.addEventListener('input', function() {
+            let value = this.value.replace(/[^a-zA-Z0-9._]/g, '');
+            if (value && !value.startsWith('@')) {
+                value = '@' + value;
+            }
+            this.value = value;
+        });
+        
+        // Formatação de WhatsApp
+        whatsapp.addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+            
+            if (value.length > 0) {
+                if (value.length <= 2) {
+                    value = `(${value}`;
+                } else if (value.length <= 7) {
+                    value = `(${value.slice(0,2)}) ${value.slice(2)}`;
+                } else {
+                    value = `(${value.slice(0,2)}) ${value.slice(2,7)}-${value.slice(7)}`;
+                }
+            }
+            
+            this.value = value;
+        });
+        
+        // Animação suave no submit
+        form.addEventListener('submit', function(e) {
+            const btn = document.getElementById('submitBtn');
+            btn.style.transform = 'scale(0.98)';
+            btn.textContent = 'Criando conta...';
+            setTimeout(() => {
+                btn.style.transform = '';
+            }, 150);
+        });
+    </script>
+</body>
+</html>

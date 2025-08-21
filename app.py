@@ -92,15 +92,40 @@ if MYSQL_AVAILABLE:
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         username VARCHAR(50) UNIQUE NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        instagram VARCHAR(100),
+                        whatsapp VARCHAR(20),
                         is_admin BOOLEAN DEFAULT FALSE,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         created_by VARCHAR(50),
-                        INDEX idx_username (username)
+                        INDEX idx_username (username),
+                        INDEX idx_email (email)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 ''')
                 print("Users table created or already exists")
             except Exception as table_error:
                 print(f"Error creating table: {table_error}")
+                
+            # Verificar e adicionar colunas se necessário
+            try:
+                # Verificar se as novas colunas existem
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'email'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE users ADD COLUMN email VARCHAR(255) UNIQUE")
+                    print("Added email column")
+                    
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'instagram'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE users ADD COLUMN instagram VARCHAR(100)")
+                    print("Added instagram column")
+                    
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'whatsapp'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE users ADD COLUMN whatsapp VARCHAR(20)")
+                    print("Added whatsapp column")
+                    
+            except Exception as alter_error:
+                print(f"Error updating table structure: {alter_error}")
                 
             # Verify table exists
             cursor.execute("SHOW TABLES LIKE 'users'")
@@ -120,9 +145,9 @@ if MYSQL_AVAILABLE:
                 try:
                     admin_hash = generate_password_hash('admin123')
                     cursor.execute('''
-                        INSERT INTO users (username, password_hash, is_admin, created_by)
-                        VALUES (%s, %s, %s, %s)
-                    ''', ('admin', admin_hash, True, 'system'))
+                        INSERT INTO users (username, password_hash, email, is_admin, created_by)
+                        VALUES (%s, %s, %s, %s, %s)
+                    ''', ('admin', admin_hash, 'admin@trendapp.com', True, 'system'))
                     print("Admin user created")
                 except Exception as user_error:
                     print(f"Error creating admin: {user_error}")
@@ -135,9 +160,9 @@ if MYSQL_AVAILABLE:
                 try:
                     freitas_hash = generate_password_hash('diferentona157')
                     cursor.execute('''
-                        INSERT INTO users (username, password_hash, is_admin, created_by)
-                        VALUES (%s, %s, %s, %s)
-                    ''', ('freitas', freitas_hash, True, 'system'))
+                        INSERT INTO users (username, password_hash, email, is_admin, created_by)
+                        VALUES (%s, %s, %s, %s, %s)
+                    ''', ('freitas', freitas_hash, 'freitas@trendapp.com', True, 'system'))
                     print("Freitas user created")
                 except Exception as freitas_error:
                     print(f"Error creating freitas: {freitas_error}")
@@ -174,7 +199,7 @@ if MYSQL_AVAILABLE:
             print(f"Error getting MySQL user {username}: {e}")
             return None
     
-    def create_mysql_user(username: str, password: str, is_admin: bool = False, created_by: str = 'admin') -> bool:
+    def create_mysql_user(username: str, password: str, email: str, instagram: str = None, whatsapp: str = None, is_admin: bool = False, created_by: str = 'admin') -> bool:
         """Create user in MySQL"""
         try:
             if not init_mysql():
@@ -183,10 +208,10 @@ if MYSQL_AVAILABLE:
             conn = pymysql.connect(**DB_CONFIG)
             cursor = conn.cursor()
             
-            # Check if user already exists
-            cursor.execute("SELECT COUNT(*) FROM users WHERE username = %s", (username,))
+            # Check if user or email already exists
+            cursor.execute("SELECT COUNT(*) FROM users WHERE username = %s OR email = %s", (username, email))
             if cursor.fetchone()[0] > 0:
-                print(f"User {username} already exists")
+                print(f"User {username} or email {email} already exists")
                 cursor.close()
                 conn.close()
                 return False
@@ -194,9 +219,9 @@ if MYSQL_AVAILABLE:
             password_hash = generate_password_hash(password)
             
             cursor.execute('''
-                INSERT INTO users (username, password_hash, is_admin, created_by)
-                VALUES (%s, %s, %s, %s)
-            ''', (username, password_hash, is_admin, created_by))
+                INSERT INTO users (username, password_hash, email, instagram, whatsapp, is_admin, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (username, password_hash, email, instagram, whatsapp, is_admin, created_by))
             
             conn.commit()
             cursor.close()
@@ -1013,6 +1038,55 @@ def health_check():
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """Página de cadastro gratuito"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        email = request.form.get('email', '').strip()
+        instagram = request.form.get('instagram', '').strip()
+        whatsapp = request.form.get('whatsapp', '').strip()
+        
+        # Validações
+        if not username or len(username) < 3:
+            flash('Nome de usuário deve ter pelo menos 3 caracteres')
+            return render_template('register.html')
+            
+        if not password or len(password) < 6:
+            flash('Senha deve ter pelo menos 6 caracteres')
+            return render_template('register.html')
+            
+        if not email or '@' not in email:
+            flash('Email inválido')
+            return render_template('register.html')
+            
+        # Validar Instagram (deve começar com @)
+        if instagram and not instagram.startswith('@'):
+            instagram = '@' + instagram
+            
+        # Validar WhatsApp (apenas números)
+        if whatsapp:
+            whatsapp = ''.join(filter(str.isdigit, whatsapp))
+            if len(whatsapp) < 10:
+                flash('WhatsApp deve ter pelo menos 10 dígitos')
+                return render_template('register.html')
+        
+        # Tentar criar usuário
+        try:
+            if create_mysql_user(username, password, email, instagram, whatsapp, is_admin=False, created_by='self'):
+                flash('Cadastro realizado com sucesso! Faça login para continuar.')
+                return redirect(url_for('login'))
+            else:
+                flash('Usuário ou email já existe. Tente outro.')
+                return render_template('register.html')
+        except Exception as e:
+            print(f"Error creating user: {e}")
+            flash('Erro interno. Tente novamente.')
+            return render_template('register.html')
+    
+    return render_template('register.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # If already logged in, redirect to index
@@ -1098,7 +1172,7 @@ def admin():
 					flash('Usuário e senha são obrigatórios')
 					return redirect(url_for('admin'))
 				
-				if create_mysql_user(username, password, is_admin=is_admin, created_by=session.get('username', 'admin')):
+				if create_mysql_user(username, password, f"{username}@temp.com", None, None, is_admin=is_admin, created_by=session.get('username', 'admin')):
 					flash(f'Usuário {username} criado com sucesso')
 				else:
 					flash('Usuário já existe ou erro ao criar')

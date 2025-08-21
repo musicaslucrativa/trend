@@ -37,10 +37,17 @@
             z-index: -1;
         }
 
-        .admin-link {
+        .nav-links {
             position: fixed;
             top: 20px;
             right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .nav-link {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: #fff;
@@ -51,13 +58,32 @@
             font-weight: 500;
             backdrop-filter: blur(10px);
             transition: all 0.3s ease;
-            z-index: 1000;
         }
 
-        .admin-link:hover {
+        .nav-link:hover {
             background: rgba(255, 255, 255, 0.2);
             border-color: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
+        }
+
+        .register-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: #10b981;
+        }
+
+        .register-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border-color: #059669;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .user-badge {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
         }
 
         .container {
@@ -301,11 +327,21 @@
                 padding: 40px 16px;
             }
 
-            .admin-link {
+            .nav-links {
                 top: 16px;
                 right: 16px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .nav-link {
                 padding: 6px 12px;
                 font-size: 13px;
+            }
+
+            .user-badge {
+                padding: 4px 8px;
+                font-size: 12px;
             }
         }
 
@@ -329,9 +365,18 @@
     </style>
 </head>
 <body>
-    {% if session.get('is_admin') %}
-        <a href="{{ url_for('admin') }}" class="admin-link">Admin</a>
-    {% endif %}
+    <div class="nav-links">
+        {% if session.get('username') %}
+            <span class="user-badge">{{ session.get('username') }}</span>
+            {% if session.get('is_admin') %}
+                <a href="{{ url_for('admin') }}" class="nav-link">Admin</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="nav-link">Sair</a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="nav-link">Entrar</a>
+            <a href="{{ url_for('register') }}" class="nav-link register-btn">Cadastro Gratuito</a>
+        {% endif %}
+    </div>
 
     <div class="container">
         <div class="header">
