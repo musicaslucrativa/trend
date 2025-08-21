@@ -3,212 +3,588 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Admin - Gerenciar Usuários</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Trend App - Painel Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 15, 35, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        .nav-brand {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a8edea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-link {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 100px auto 40px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .admin-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .admin-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 36px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .admin-header h1 {
+            font-size: clamp(28px, 5vw, 36px);
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff 0%, #a8edea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .admin-header p {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 400;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #1a1a2e;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .card-icon {
+            font-size: 24px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .status-item {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .status-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #8b5cf6;
+            margin-bottom: 4px;
+        }
+
+        .status-label {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-ok {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f9fafb;
+            color: #374151;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #8b5cf6;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .table th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .table td {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        .admin-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        /* Animações */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .card {
+            animation: fadeInUp 0.8s ease 0.1s both;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .container {
+                margin-top: 120px;
+                padding: 0 16px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .nav {
+                padding: 16px;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .nav-brand {
+                font-size: 18px;
+            }
+
+            .admin-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table {
+                font-size: 12px;
+            }
+
+            .table th,
+            .table td {
+                padding: 8px 12px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <header class="header slide-up">
-        <h1>Painel de Administração</h1>
-        <p>Gerenciamento de usuários e configurações do sistema</p>
-    </header>
+    <nav class="nav">
+        <div class="nav-brand">🔧 Admin Panel</div>
+        <div class="nav-links">
+            <span class="badge">{{ session.get('username') }}</span>
+            <a href="{{ url_for('index') }}" class="nav-link">Início</a>
+            <a href="{{ url_for('logout') }}" class="nav-link">Sair</a>
+        </div>
+    </nav>
 
     <div class="container">
-        <div class="dashboard-header mb-4">
-            <div class="dashboard-title">
-                <i class="fas fa-tachometer-alt mr-1"></i> Dashboard
-            </div>
-            <div class="dashboard-actions">
-                <a href="{{ url_for('index') }}" class="btn btn-sm">
-                    <i class="fas fa-home mr-1"></i> Início
-                </a>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-secondary">
-                    <i class="fas fa-sign-out-alt mr-1"></i> Sair
-                </a>
-            </div>
+        <div class="admin-header">
+            <div class="admin-icon">⚙️</div>
+            <h1>Painel Administrativo</h1>
+            <p>Gerencie usuários e monitore o sistema</p>
         </div>
 
-        <div class="dashboard-stats">
-            <div class="stat-card">
-                <h3>Status do MySQL</h3>
-                {% if mysql_status == "Conectado" %}
-                    <div class="stat-value text-success">
-                        <i class="fas fa-check-circle mr-1"></i> Conectado
-                    </div>
-                {% else %}
-                    <div class="stat-value text-error">
-                        <i class="fas fa-exclamation-circle mr-1"></i> Desconectado
-                    </div>
-                {% endif %}
-            </div>
-            
-            <div class="stat-card">
-                <h3>Total de Usuários</h3>
-                <div class="stat-value">
-                    <i class="fas fa-users mr-1"></i> {{ users|length }}
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <h3>Administradores</h3>
-                <div class="stat-value">
-                    <i class="fas fa-user-shield mr-1"></i> 
-                    {{ users|selectattr('is_admin', 'eq', true)|list|length }}
-                </div>
-            </div>
-        </div>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% with messages = get_flashed_messages() %}
             {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} mb-3">
-                        {% if category == 'success' %}
-                            <i class="fas fa-check-circle mr-1"></i>
-                        {% elif category == 'error' %}
-                            <i class="fas fa-exclamation-circle mr-1"></i>
-                        {% else %}
-                            <i class="fas fa-info-circle mr-1"></i>
-                        {% endif %}
-                        {{ message }}
-                    </div>
+                {% for message in messages %}
+                    <div class="alert alert-success">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
-        <div class="card mb-4 fade-in">
-            <div class="card-header">
-                <h2><i class="fas fa-user-plus mr-1"></i> Criar Novo Usuário</h2>
+        <div class="grid">
+            <!-- Status do Sistema -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Status do Sistema</div>
+                </div>
+
+                <div class="status-grid">
+                    {% if mysql_status and mysql_status.status == 'ok' %}
+                        <div class="status-item">
+                            <div class="status-value">✅</div>
+                            <div class="status-label">MySQL Conectado</div>
+                        </div>
+                    {% else %}
+                        <div class="status-item">
+                            <div class="status-value">❌</div>
+                            <div class="status-label">MySQL Offline</div>
+                        </div>
+                    {% endif %}
+
+                    {% if health_status and health_status.tools.exiftool.available %}
+                        <div class="status-item">
+                            <div class="status-value">✅</div>
+                            <div class="status-label">ExifTool OK</div>
+                        </div>
+                    {% else %}
+                        <div class="status-item">
+                            <div class="status-value">❌</div>
+                            <div class="status-label">ExifTool Error</div>
+                        </div>
+                    {% endif %}
+
+                    {% if health_status and health_status.tools.ffmpeg.available %}
+                        <div class="status-item">
+                            <div class="status-value">✅</div>
+                            <div class="status-label">FFmpeg OK</div>
+                        </div>
+                    {% else %}
+                        <div class="status-item">
+                            <div class="status-value">❌</div>
+                            <div class="status-label">FFmpeg Error</div>
+                        </div>
+                    {% endif %}
+
+                    <div class="status-item">
+                        <div class="status-value">{{ users|length }}</div>
+                        <div class="status-label">Usuários Ativos</div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="card-body">
+
+            <!-- Criar Usuário -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">👤</div>
+                    <div class="card-title">Criar Novo Usuário</div>
+                </div>
+
                 <form method="post" action="{{ url_for('admin') }}">
-                    <input type="hidden" name="action" value="create_user">
-                    
                     <div class="form-group">
-                        <label for="username" class="form-label">
-                            <i class="fas fa-user mr-1"></i> Nome de Usuário
-                        </label>
-                        <input id="username" name="username" class="form-control" required 
-                               placeholder="Digite o nome de usuário">
+                        <label for="username" class="form-label">Nome do usuário</label>
+                        <input type="text" id="username" name="username" class="form-input" placeholder="Digite o nome do usuário" required>
                     </div>
-                    
+
                     <div class="form-group">
-                        <label for="password" class="form-label">
-                            <i class="fas fa-lock mr-1"></i> Senha
-                        </label>
-                        <input id="password" name="password" type="password" class="form-control" required 
-                               placeholder="Digite a senha">
+                        <label for="password" class="form-label">Senha</label>
+                        <input type="password" id="password" name="password" class="form-input" placeholder="Digite a senha" required>
                     </div>
-                    
+
                     <div class="form-group">
-                        <div class="d-flex align-items-center">
-                            <input type="checkbox" id="is_admin" name="is_admin" class="mr-2">
-                            <label for="is_admin" class="form-label mb-0">
-                                <i class="fas fa-user-shield mr-1"></i> Criar como administrador
-                            </label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="is_admin" name="is_admin" class="checkbox">
+                            <label for="is_admin" class="form-label" style="margin-bottom: 0;">Usuário administrador</label>
                         </div>
                     </div>
-                    
-                    <button type="submit" class="btn">
-                        <i class="fas fa-plus-circle mr-1"></i> Criar Usuário
-                    </button>
+
+                    <button type="submit" class="btn">Criar Usuário</button>
                 </form>
             </div>
         </div>
 
-        <div class="card fade-in">
+        <!-- Lista de Usuários -->
+        <div class="card">
             <div class="card-header">
-                <h2><i class="fas fa-users mr-1"></i> Usuários do Sistema</h2>
+                <div class="card-icon">👥</div>
+                <div class="card-title">Usuários Cadastrados</div>
             </div>
-            
-            <div class="card-body">
-                {% if users %}
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Usuário</th>
-                                    <th>Tipo</th>
-                                    <th>Criado em</th>
-                                    <th>Criado por</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in users %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ user.username }}</strong>
-                                    </td>
-                                    <td>
-                                        {% if user.is_admin %}
-                                            <span class="badge badge-primary">
-                                                <i class="fas fa-user-shield mr-1"></i> Admin
-                                            </span>
-                                        {% else %}
-                                            <span class="badge badge-secondary">
-                                                <i class="fas fa-user mr-1"></i> Usuário
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ user.created_at.strftime('%d/%m/%Y %H:%M') if user.created_at else 'N/A' }}</td>
-                                    <td>{{ user.created_by or 'N/A' }}</td>
-                                    <td>
-                                        <div class="table-actions">
-                                            {% if user.username != 'admin' %}
-                                                {% if not user.is_admin %}
-                                                    <form method="post" action="{{ url_for('admin') }}" class="d-inline">
-                                                        <input type="hidden" name="action" value="toggle_admin">
-                                                        <input type="hidden" name="username" value="{{ user.username }}">
-                                                        <input type="hidden" name="make_admin" value="true">
-                                                        <button type="submit" class="btn btn-sm btn-success">
-                                                            <i class="fas fa-user-shield"></i>
-                                                        </button>
-                                                    </form>
-                                                {% else %}
-                                                    <form method="post" action="{{ url_for('admin') }}" class="d-inline">
-                                                        <input type="hidden" name="action" value="toggle_admin">
-                                                        <input type="hidden" name="username" value="{{ user.username }}">
-                                                        <input type="hidden" name="make_admin" value="false">
-                                                        <button type="submit" class="btn btn-sm btn-secondary">
-                                                            <i class="fas fa-user"></i>
-                                                        </button>
-                                                    </form>
-                                                {% endif %}
-                                                
-                                                <form method="post" action="{{ url_for('admin') }}" class="d-inline">
-                                                    <input type="hidden" name="action" value="delete_user">
-                                                    <input type="hidden" name="username" value="{{ user.username }}">
-                                                    <button type="submit" class="btn btn-sm btn-danger" 
-                                                            onclick="return confirm('Tem certeza que deseja remover o usuário {{ user.username }}?')">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            {% else %}
-                                                <span class="badge">Usuário principal</span>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle mr-1"></i> 
-                        Nenhum usuário encontrado no sistema.
-                    </div>
-                {% endif %}
-            </div>
+
+            {% if users %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Tipo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="admin-badge">Admin</span>
+                                    {% else %}
+                                        Usuário
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.username != session.get('username') %}
+                                        <form method="post" action="{{ url_for('admin') }}" style="display: inline;">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="username" value="{{ user.username }}">
+                                            <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja excluir este usuário?')">
+                                                Excluir
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span style="color: #9ca3af; font-size: 12px;">Você mesmo</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: #64748b;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
+                    <p>Nenhum usuário encontrado</p>
+                </div>
+            {% endif %}
         </div>
     </div>
-
-    <footer class="footer">
-        <p>&copy; 2025 Trend App - Todos os direitos reservados</p>
-    </footer>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

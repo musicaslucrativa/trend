@@ -3,110 +3,442 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Trend App - Mídia Processada</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Trend App - Foto Otimizada</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 15, 35, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        .nav-link {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 100px auto 40px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .success-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 36px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .success-header h1 {
+            font-size: clamp(28px, 5vw, 36px);
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff 0%, #a8edea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .success-header p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 400;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #1a1a2e;
+            position: relative;
+            text-align: center;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        }
+
+        .media-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        .result-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 16px;
+        }
+
+        .result-description {
+            font-size: 16px;
+            color: #64748b;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .status-badge::before {
+            content: '✓';
+            margin-right: 6px;
+            font-weight: bold;
+        }
+
+        .file-info {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 24px 0;
+        }
+
+        .file-name {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            color: #475569;
+            word-break: break-all;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 32px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 200px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+            border-color: #94a3b8;
+        }
+
+        .cta-section {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 32px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .cta-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        /* Animações */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .result-card {
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .container {
+                margin-top: 120px;
+                padding: 0 16px;
+            }
+
+            .result-card {
+                padding: 24px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                min-width: auto;
+            }
+
+            .nav {
+                padding: 16px;
+            }
+
+            .success-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .cta-section {
+                padding: 24px 16px;
+            }
+
+            .cta-text {
+                font-size: 16px;
+            }
+
+            .media-icon {
+                font-size: 48px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <nav class="d-flex justify-content-between p-2">
+    <nav class="nav">
         <div></div>
-        {% if session.get('is_admin') %}
-            <a href="{{ url_for('admin') }}" class="btn btn-sm">
-                <i class="fas fa-user-shield mr-1"></i> Admin
-            </a>
-        {% elif session.get('username') %}
-            <div class="d-flex gap-2">
-                <span class="badge badge-primary p-1">
-                    <i class="fas fa-user mr-1"></i> {{ session.get('username') }}
-                </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm">
-                    <i class="fas fa-sign-out-alt mr-1"></i> Sair
-                </a>
-            </div>
-        {% else %}
-            <a href="{{ url_for('login') }}" class="btn btn-sm">
-                <i class="fas fa-sign-in-alt mr-1"></i> Login
-            </a>
-        {% endif %}
+        <div style="display: flex; align-items: center; gap: 12px;">
+            {% if session.get('is_admin') %}
+                <a href="{{ url_for('admin') }}" class="nav-link">Admin</a>
+            {% elif session.get('username') %}
+                <span class="badge">{{ session.get('username') }}</span>
+                <a href="{{ url_for('logout') }}" class="nav-link">Sair</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+            {% endif %}
+        </div>
     </nav>
 
-    <header class="header slide-up">
-        <h1>Foto otimizada com sucesso!</h1>
-        <p>Sua foto está pronta para viralizar e aumentar seu alcance!</p>
-    </header>
-
     <div class="container">
-        <div class="card fade-in">
-            <div class="card-header">
-                <h2 class="text-center">
-                    <i class="fas fa-check-circle text-success mr-1"></i> 
-                    Tudo pronto para a trend!
-                </h2>
+        <div class="success-header">
+            <div class="success-icon">✨</div>
+            <h1>Foto otimizada com sucesso!</h1>
+            <p>Sua foto está pronta para viralizar e aumentar seu alcance!</p>
+        </div>
+
+        <div class="result-card">
+            {% set file_ext = processed_filename.split('.')[-1].lower() %}
+            
+            <div class="media-icon">📸</div>
+            <h2 class="result-title">Sua foto está pronta!</h2>
+            <p class="result-description">
+                Sua foto está otimizada e pronta para viralizar na trend!
+            </p>
+            
+            <div class="status-badge">Pronta para postar</div>
+            
+            <div class="file-info">
+                <div style="font-size: 14px; color: #64748b; margin-bottom: 8px;">Nome do arquivo:</div>
+                <div class="file-name">{{ processed_filename }}</div>
             </div>
 
-            <div class="card-body text-center">
-                {% set file_ext = processed_filename.split('.')[-1].lower() %}
-                {% if file_ext in ['mp4', 'mov', 'avi', '3gp', 'mkv'] %}
-                    <div class="mb-3">
-                        <i class="fas fa-image fa-4x text-primary mb-3"></i>
-                        <h3 class="mb-2">Arquivo processado!</h3>
-                        <p class="text-light mb-3">
-                            Seu arquivo está pronto para aumentar seu alcance!
-                        </p>
-                        <div class="badge badge-success mb-3">
-                            <i class="fas fa-check mr-1"></i> Pronto para postar
-                        </div>
-                        <p class="text-light mb-1">Nome do arquivo:</p>
-                        <p class="mb-3"><code>{{ processed_filename }}</code></p>
-                    </div>
-                    <div class="d-flex justify-content-center gap-2 flex-wrap">
-                        <a href="{{ url_for('download', filename=processed_filename) }}" class="btn btn-success">
-                            <i class="fas fa-download mr-1"></i> Baixar arquivo
-                        </a>
-                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                            <i class="fas fa-plus-circle mr-1"></i> Processar outra foto
-                        </a>
-                    </div>
-                {% else %}
-                    <div class="mb-3">
-                        <i class="fas fa-image fa-4x text-primary mb-3"></i>
-                        <h3 class="mb-2">Sua foto está pronta!</h3>
-                        <p class="text-light mb-3">
-                            Sua foto está otimizada e pronta para viralizar na trend!
-                        </p>
-                        <div class="badge badge-success mb-3">
-                            <i class="fas fa-check mr-1"></i> Pronta para postar
-                        </div>
-                        <p class="text-light mb-1">Nome do arquivo:</p>
-                        <p class="mb-3"><code>{{ processed_filename }}</code></p>
-                    </div>
-                    <div class="d-flex justify-content-center gap-2 flex-wrap">
-                        <a href="{{ url_for('download', filename=processed_filename) }}" class="btn btn-success">
-                            <i class="fas fa-download mr-1"></i> Baixar imagem
-                        </a>
-                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                            <i class="fas fa-plus-circle mr-1"></i> Processar outra foto
-                        </a>
-                    </div>
-                {% endif %}
+            <div class="action-buttons">
+                <a href="{{ url_for('download', filename=processed_filename) }}" class="btn btn-primary">
+                    📥 Baixar foto
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    ➕ Processar outra foto
+                </a>
             </div>
+        </div>
 
-            <div class="card-footer">
-                <div class="text-center">
-                    <p class="text-light mb-0">
-                        <i class="fas fa-rocket mr-1"></i> 
-                        Poste no Instagram e veja seu alcance aumentar em até 10x!
-                    </p>
-                </div>
-            </div>
+        <div class="cta-section">
+            <p class="cta-text">
+                🚀 Poste no Instagram e veja seu alcance aumentar em até 10x!
+            </p>
         </div>
     </div>
 
     <footer class="footer">
         <p>&copy; 2025 Trend App - Todos os direitos reservados</p>
     </footer>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
