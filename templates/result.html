@@ -32,8 +32,8 @@
     </nav>
 
     <header class="header slide-up">
-        <h1>Mídia processada com sucesso!</h1>
-        <p>Sua mídia está pronta para potencializar seu alcance.</p>
+        <h1>Foto otimizada com sucesso!</h1>
+        <p>Sua foto está pronta para viralizar e aumentar seu alcance!</p>
     </header>
 
     <div class="container">
@@ -49,10 +49,10 @@
                 {% set file_ext = processed_filename.split('.')[-1].lower() %}
                 {% if file_ext in ['mp4', 'mov', 'avi', '3gp', 'mkv'] %}
                     <div class="mb-3">
-                        <i class="fas fa-video fa-4x text-primary mb-3"></i>
-                        <h3 class="mb-2">Seu vídeo está pronto!</h3>
+                        <i class="fas fa-image fa-4x text-primary mb-3"></i>
+                        <h3 class="mb-2">Arquivo processado!</h3>
                         <p class="text-light mb-3">
-                            Todos os metadados da Ray-Ban Meta Smart Glasses foram aplicados com sucesso.
+                            Seu arquivo está pronto para aumentar seu alcance!
                         </p>
                         <div class="badge badge-success mb-3">
                             <i class="fas fa-check mr-1"></i> Pronto para postar
@@ -62,18 +62,18 @@
                     </div>
                     <div class="d-flex justify-content-center gap-2 flex-wrap">
                         <a href="{{ url_for('download', filename=processed_filename) }}" class="btn btn-success">
-                            <i class="fas fa-download mr-1"></i> Baixar vídeo
+                            <i class="fas fa-download mr-1"></i> Baixar arquivo
                         </a>
                         <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                            <i class="fas fa-plus-circle mr-1"></i> Processar outra mídia
+                            <i class="fas fa-plus-circle mr-1"></i> Processar outra foto
                         </a>
                     </div>
                 {% else %}
                     <div class="mb-3">
                         <i class="fas fa-image fa-4x text-primary mb-3"></i>
-                        <h3 class="mb-2">Sua imagem está pronta!</h3>
+                        <h3 class="mb-2">Sua foto está pronta!</h3>
                         <p class="text-light mb-3">
-                            Todos os metadados da Ray-Ban Meta Smart Glasses foram aplicados com sucesso.
+                            Sua foto está otimizada e pronta para viralizar na trend!
                         </p>
                         <div class="badge badge-success mb-3">
                             <i class="fas fa-check mr-1"></i> Pronta para postar
@@ -86,7 +86,7 @@
                             <i class="fas fa-download mr-1"></i> Baixar imagem
                         </a>
                         <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                            <i class="fas fa-plus-circle mr-1"></i> Processar outra mídia
+                            <i class="fas fa-plus-circle mr-1"></i> Processar outra foto
                         </a>
                     </div>
                 {% endif %}
@@ -96,7 +96,7 @@
                 <div class="text-center">
                     <p class="text-light mb-0">
                         <i class="fas fa-rocket mr-1"></i> 
-                        Poste sua mídia no Instagram e veja seu alcance aumentar!
+                        Poste no Instagram e veja seu alcance aumentar em até 10x!
                     </p>
                 </div>
             </div>

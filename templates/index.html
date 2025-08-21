@@ -279,11 +279,7 @@
     <div class="container">
         <div class="header">
             <h1>Entre na trend e potencialize seu alcance em até 10x</h1>
-            <p>Envie sua foto ou vídeo e receba o arquivo pronto para postar.</p>
-            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin: 16px 0; font-size: 14px;">
-                <strong>📸 IMAGENS:</strong> Funcionam perfeitamente na trend!<br>
-                <strong>🎬 VÍDEOS:</strong> Processamos com metadados, mas apenas vídeos reais dos óculos Ray-Ban funcionam 100% na trend.
-            </div>
+            <p>Envie sua foto e receba o arquivo pronto para viralizar.</p>
         </div>
 
         <div class="card">
@@ -296,12 +292,12 @@
             {% endwith %}
 
             <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" id="uploadForm">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📷 🎬</div>
-                    <div class="upload-text">Toque para escolher uma foto ou vídeo</div>
-                    <div class="upload-hint">JPG, PNG, HEIC, MP4, MOV - até 16MB</div>
-                    <input type="file" name="image" id="fileInput" class="file-input" accept="image/*,video/*" required>
-                </div>
+                                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">📷</div>
+                            <div class="upload-text">Toque para escolher sua foto</div>
+                            <div class="upload-hint">JPG, PNG, HEIC - até 16MB</div>
+                            <input type="file" name="image" id="fileInput" class="file-input" accept="image/*" required>
+                        </div>
 
                 <div class="file-selected" id="fileSelected">
                     Arquivo selecionado com sucesso!
@@ -310,9 +306,9 @@
                 <button type="submit" class="btn" id="submitBtn" disabled>Continuar</button>
             </form>
 
-            <div class="footer">
-                Seu arquivo fica disponível para download em seguida.
-            </div>
+                                    <div class="footer">
+                            Sua foto otimizada fica disponível para download em seguida.
+                        </div>
         </div>
     </div>
 
@@ -355,14 +351,13 @@
         });
 
         function handleFileSelect(file) {
-            // Check if file is image or video
-            const isImage = file.type.startsWith('image/');
-            const isVideo = file.type.startsWith('video/');
-            
-            if (!isImage && !isVideo) {
-                alert('Por favor, selecione apenas imagens ou vídeos.');
-                return;
-            }
+                                    // Check if file is image
+                        const isImage = file.type.startsWith('image/');
+                        
+                        if (!isImage) {
+                            alert('Por favor, selecione apenas imagens.');
+                            return;
+                        }
 
             // Show file selected indicator
             fileSelected.style.display = 'block';
