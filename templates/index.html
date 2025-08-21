@@ -37,14 +37,39 @@
             z-index: -1;
         }
 
-        .nav-links {
+        .nav-bar {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 20px;
+            z-index: 1000;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a8edea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
             display: flex;
             align-items: center;
             gap: 12px;
-            z-index: 1000;
         }
 
         .nav-link {
@@ -58,6 +83,7 @@
             font-weight: 500;
             backdrop-filter: blur(10px);
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
 
         .nav-link:hover {
@@ -84,12 +110,66 @@
             border-radius: 16px;
             font-size: 13px;
             font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-mobile {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 20px;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 16px;
+            min-width: 200px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-mobile.show {
+            display: block;
+            animation: fadeInDown 0.3s ease;
+        }
+
+        .nav-mobile .nav-link {
+            display: block;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .nav-mobile .user-badge {
+            display: block;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 60px 20px;
+            padding: 100px 20px 60px;
             position: relative;
             z-index: 1;
         }
@@ -315,8 +395,24 @@
 
         /* Responsividade */
         @media (max-width: 768px) {
+            .nav-bar {
+                padding: 12px 16px;
+            }
+
+            .nav-brand {
+                font-size: 18px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
             .container {
-                padding: 40px 16px;
+                padding: 80px 16px 40px;
             }
 
             .card {
@@ -326,22 +422,21 @@
             .upload-area {
                 padding: 40px 16px;
             }
+        }
 
-            .nav-links {
-                top: 16px;
+        @media (max-width: 600px) {
+            .nav-mobile {
                 right: 16px;
-                gap: 8px;
-                flex-wrap: wrap;
+                left: 16px;
+                min-width: auto;
             }
 
-            .nav-link {
-                padding: 6px 12px;
-                font-size: 13px;
+            .nav-content {
+                padding: 0;
             }
 
-            .user-badge {
-                padding: 4px 8px;
-                font-size: 12px;
+            .nav-brand {
+                font-size: 16px;
             }
         }
 
@@ -365,18 +460,41 @@
     </style>
 </head>
 <body>
-    <div class="nav-links">
-        {% if session.get('username') %}
-            <span class="user-badge">{{ session.get('username') }}</span>
-            {% if session.get('is_admin') %}
-                <a href="{{ url_for('admin') }}" class="nav-link">Admin</a>
-            {% endif %}
-            <a href="{{ url_for('logout') }}" class="nav-link">Sair</a>
-        {% else %}
-            <a href="{{ url_for('login') }}" class="nav-link">Entrar</a>
-            <a href="{{ url_for('register') }}" class="nav-link register-btn">Cadastro Gratuito</a>
-        {% endif %}
-    </div>
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <div class="nav-brand">📈 Trend App</div>
+            
+            <div class="nav-links">
+                {% if session.get('username') %}
+                    <span class="user-badge">{{ session.get('username') }}</span>
+                    {% if session.get('is_admin') %}
+                        <a href="{{ url_for('admin') }}" class="nav-link">Admin</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="nav-link">Sair</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">Entrar</a>
+                    <a href="{{ url_for('register') }}" class="nav-link register-btn">Cadastro Gratuito</a>
+                {% endif %}
+            </div>
+
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                ☰
+            </button>
+
+            <div class="nav-mobile" id="mobileMenu">
+                {% if session.get('username') %}
+                    <span class="user-badge">{{ session.get('username') }}</span>
+                    {% if session.get('is_admin') %}
+                        <a href="{{ url_for('admin') }}" class="nav-link">Admin</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="nav-link">Sair</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">Entrar</a>
+                    <a href="{{ url_for('register') }}" class="nav-link register-btn">Cadastro Gratuito</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
 
     <div class="container">
         <div class="header">
@@ -496,6 +614,22 @@
             };
             reader.readAsDataURL(file);
         }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('show');
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const toggleButton = document.querySelector('.mobile-menu-toggle');
+            
+            if (!mobileMenu.contains(event.target) && !toggleButton.contains(event.target)) {
+                mobileMenu.classList.remove('show');
+            }
+        });
     </script>
 </body>
 </html>
