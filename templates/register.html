@@ -347,7 +347,7 @@
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
                     {% for message in messages %}
-                        {% if 'sucesso' in message %}
+                        {% if 'sucesso' in message.lower() %}
                             <div class="alert alert-success">{{ message }}</div>
                         {% else %}
                             <div class="alert">{{ message }}</div>
